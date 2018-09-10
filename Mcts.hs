@@ -52,21 +52,36 @@ coupsPossibles' atout g = coupsPossibles atout (RoundColor roundColor) False (fs
         curHand = _gPlayersHands g A.! curPlayer 
         roundColor = _cColor $ head $ fst <$> pliCourant        
 
-score g = 100
+score :: Player -> Atout -> Game -> Int
+score moi atout g
+  | lastWinner == moi || lastWinner == coequipier moi = compteDesPoints + 10
+  | otherwise = compteDesPoints
+  where plisJoues = _gPlisJoues g
+        valeurs = [(valeurPli atout (fmap fst pli), gagnant) | (Pli pli,gagnant) <- plisJoues] 
+        compteDesPoints = foldl f 0 valeurs
+        f acc (val, gagnant)
+          | gagnant == moi || coequipier gagnant == moi = acc + val
+          | otherwise = acc
+        lastWinner = snd $ last plisJoues 
 
-rollout :: Atout -> Game -> Double
-rollout atout g
-  | terminated g = score g
-  | otherwise = trace (show $ _gJoueursRestants g) $ 
-      rollout atout $ jouerCarte' atout g (pickCard  coups)
+rollout :: Player -> Atout -> Game -> (Int,Game)
+rollout moi atout g
+  | terminated g = (score moi atout g,g)
+  | otherwise = rollout moi atout $ jouerCarte' atout g (pickCard  coups)
       where pickCard = head
             coups = coupsPossibles' atout g
 
-main = do
+test = do
   hands <- distribuerCartes
   let g = initGame{_gJoueursRestants = [P_1, P_2, P_3, P_4], _gPlayersHands = hands}
       atout = A Heart
-      val = rollout atout g
-  print $ terminated g
-  print val
-  
+      moi = P_2
+      (val,g') = rollout moi atout g
+      plis =  [(showCard . fst <$>  pli,w, valeurPli atout (fmap fst pli))| (Pli pli, w ) <- _gPlisJoues g']
+  putStrLn $ unlines $ show <$> plis
+  return val
+
+
+main n = do
+  ret <- forM [1..n] (\ _ -> test)
+  print $ fromIntegral (sum ret) / fromIntegral n
