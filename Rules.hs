@@ -22,16 +22,13 @@ _w
        p (Unwrapped s) (f (Unwrapped s)) -> p s (f s)
 _w = _Wrapped'
 
-data Annonce_Val = CV_80 | CV_90 | CV_100 | CV_110 | CV_120 | CV_130 | CV_140 | CV_150 | CV_160 | CV_170 | CV_180 | CV_CAPOT
-                   deriving (Eq, Ord,Show)
-data Annonce = Annonce { _aVal :: Annonce_Val, _aColor :: Color}
-               deriving (Show, Eq)
+
 showAnnonce (Annonce val color) = T.concat [T.pack $ show val, " à ", showColor color]
 instance Ord Annonce where
   a `compare` a' = _aVal a `compare` _aVal a'
                
 newtype Hand = Hand {_hand :: [Card]}                      
-  deriving (Generic)
+  deriving (Generic, Show)
 instance  Wrapped Hand 
 
 
@@ -91,6 +88,7 @@ comparerCarte (A atout) carteDemandee carteJouee
     | atout == couleurDemandee && atout /= couleurJouee = GT
     | atout /= couleurDemandee && atout == couleurJouee = LT
     | atout == couleurDemandee && atout == couleurJouee = compareTrumpsValue valDemandee valJouee
+    | couleurDemandee /= couleurJouee = GT
     | atout /= couleurDemandee && atout /= couleurJouee = normalToInt valDemandee `compare` normalToInt valJouee 
   where couleurDemandee = _cColor carteDemandee
         couleurJouee = _cColor carteJouee
@@ -145,6 +143,9 @@ coupsPossibles (A atout) (RoundColor rcolor) coequipierMaitreP plays (Hand cards
     -- Si on est le premier joueur, on fait ce qu'on veut
     | null plays = cards
 
+    {- Si on commence à l'atout et qu'on en a pas, il faut pisser -}
+    | rcolor == atout && null atoutsPossibles = resteDesCartes
+      
     -- Si on commence à l'atout, faut monter
     | rcolor == atout = atoutsPossibles
 
