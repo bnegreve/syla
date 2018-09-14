@@ -9,20 +9,6 @@ import Control.Lens
 import GHC.Generics
 import qualified Data.Text as T
 
-
-newtype Atout = A Color
-    deriving (Generic)
-instance Wrapped Atout
-
-newtype RoundColor = RoundColor Color
-    deriving (Generic, Show)
-instance Wrapped RoundColor
-_w
-  :: (Functor f, Profunctor p, Wrapped s) =>
-       p (Unwrapped s) (f (Unwrapped s)) -> p s (f s)
-_w = _Wrapped'
-
-
 showAnnonce (Annonce val color) = T.concat [T.pack $ show val, " à ", showColor color]
 instance Ord Annonce where
   a `compare` a' = _aVal a `compare` _aVal a'

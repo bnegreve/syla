@@ -12,16 +12,7 @@ import Control.Monad.State
 import qualified Data.Array as A
 import Data.Ix
 import Data.Maybe
-
-
-
-
-
-
-data Player = P_1 | P_2 | P_3 | P_4
-              deriving (Eq,Show,Enum, Ord, Ix)
-
-
+import System.Random.Shuffle
 newtype Pli = Pli [(Card,Player)]
     deriving Generic
 instance Wrapped Pli
@@ -91,9 +82,16 @@ coequipier P_2 = P_4
 coequipier P_3 = P_1
 coequipier P_4 = P_2
 compterPlis :: (Monad m) => Atout -> GameT m Int
-compterPlis (A atout) = do
+compterPlis atout = do
         plisJoues <-  use gPlisJoues
         let plisValeurs = fmap f plisJoues 
             f (Pli p, winner) = (valeurPli atout $ fst <$> p , winner)
             (team1,team2) = foldl (\(counter1,counter2) (valeur,winner) -> if winner == P_1 || winner == P_3 then (valeur + counter1,counter2) else (counter1,valeur+counter2)) (0,0) plisValeurs
         undefined    
+gamePublicPlayer :: Player -> Game -> IO (Game, [ Card ]) 
+gamePublicPlayer p g = do
+     shuffledRemainingCards <- shuffleM remainingCards
+     pure (g',shuffledRemainingCards)
+  where g' = g { _gPlayersHands = _gPlayersHands g A.// [(pi, Hand []) | pi <- [P_1 .. P_4], pi /= p]  }
+        remainingCards = concat [mi | (pi,Hand mi) <- A.assocs $ _gPlayersHands g, pi /= p]
+        
