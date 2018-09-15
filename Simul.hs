@@ -36,12 +36,16 @@ simulator getCurrentPlayer terminalP getPlayerMove playMove game
 getPlayerMoveCoinche :: Game -> Player -> IO Card
 getPlayerMoveCoinche game player
   | player == P_1 || player == P_3 =  
-    basicAi (A Heart) 1 game player (getLegalMoves game player)
+    dumbAi (A Heart) 1 game player (getLegalMoves game player)
   | otherwise = 
-    basicAi (A Heart) 1000 game player (getLegalMoves game player)
+    basicAi (A Heart) 100 game player (getLegalMoves game player)
     
 getLegalMoves :: Game -> Player -> [Card]
 getLegalMoves game player = validMoves (A Heart) game (_gPlayersHands game A.! player)
+
+dumbAi :: Atout -> Int -> Game -> Player -> [Card] -> IO Card
+dumbAi atout n game player cards = do
+  head <$> shuffleM cards
 
 basicAi :: Atout -> Int -> Game -> Player -> [Card] -> IO Card
 basicAi atout n game player cards = do 
