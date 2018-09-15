@@ -48,11 +48,16 @@ jouerCarte' atout g c = gFinal
         curPlayer = head $ _gJoueursRestants g
 
 coupsPossibles' :: Atout -> Game -> [Card]
-coupsPossibles' atout g = coupsPossibles atout (RoundColor roundColor) False (fst <$> pliCourant) curHand
-  where pliCourant = view _w $ _gPliCourant g
+coupsPossibles' atout g = validMoves atout g curHand  --coupsPossibles atout (RoundColor roundColor) False (fst <$> pliCourant) curHand
+  where --pliCourant = view _w $ _gPliCourant g
         curPlayer =  head $ _gJoueursRestants g
         curHand = _gPlayersHands g A.! curPlayer 
+        --roundColor = _cColor $ head $ fst <$> pliCourant        
+validMoves :: Atout -> Game -> Hand -> [Card]
+validMoves atout g hand = coupsPossibles atout (RoundColor roundColor) False (fst <$> pliCourant) hand 
+  where pliCourant = view _w $ _gPliCourant g
         roundColor = _cColor $ head $ fst <$> pliCourant        
+
 
 score :: Player -> Atout -> Game -> Int
 score moi atout g
@@ -75,29 +80,60 @@ rollout moi atout g
 
 {- Evalue la valeur d'un état  -}
 rollout' :: Player -> Atout -> Game -> Int -> Int -> IO (Card,Double)
-rollout' me atout g n maxdepth
+rollout' me atout g n maxdepth = do
 --  | terminated g = pure (score me atout g, g)
-  | length coups == 1 = pure (head coups, rollout me atout g)
-  | otherwise = do
       (g',remainingCards) <- gamePublicPlayer me g
-      stats <- forM (coupsPossibles' atout g') $ \ci ->
+      let possibleMoves
+            | me ==  curPlayer = coupsPossibles' atout g'
+            | otherwise = [head $ validMoves atout g' $ Hand remainingCards]
+      stats <- forM possibleMoves $ \ci ->
         let g'' = jouerCarte' atout g' ci
 	in do
           if maxdepth == 0 then
-            do scores <- forM [1..n] $ \_ -> pure $ rollout me atout g''
+            do 
+               scores <- forM [1..n] $ \_ -> do
+                 newGame <- makePartialGame me g'' $ if curPlayer == me then  remainingCards else tail remainingCards
+                 let x = rollout me atout newGame --g''
+                 print x
+                 pure x
                pure $ (ci, (sum scores) / fromIntegral n)
             else do
              results <- forM [1..n] $ \_ -> do newGame <- makePartialGame me g'' remainingCards
                                                rollout' me atout newGame n (maxdepth - 1)
 	     pure $ (ci,sum (snd <$> results) / fromIntegral n)
       let bestMove = maximumBy (\(c,v) (c',v') -> v `compare` v') stats 
-      pure $ bestMove    
+      trace (show stats) $ pure $ bestMove    
 
 
       --coup <- head <$> shuffleM $ coupsPossibles' atout g'
       --rollout moi atout $ jouerCarte' atout g' (pickCard  coups)
       where 
             coups = coupsPossibles' atout g
+            curPlayer = head $ g ^. gJoueursRestants
+            
+roll :: (s -> Bool) -> (s -> [c]) -> (s -> c -> s) ->  s -> IO s
+roll terminalP coups jouer s 
+  |terminalP s = pure s
+  |otherwise = do let possibilites = coups s
+                  randomCoup <- head <$> shuffleM possibilites
+                  roll terminalP coups jouer (jouer s randomCoup) 
+     
+  
+mcts :: (s -> Bool) -> (s -> [c]) -> (s -> c -> s) -> (s -> Double) -> Int -> s -> IO (c,Double)
+mcts terminalP coups jouer eval maxdepth s
+  |maxdepth == 1 = do tests <- forM (coups s) $ \ci -> do
+                                val <- eval <$> roll terminalP coups jouer s
+                                pure (ci,val)
+                      pure $ maximumBy (\(c,v) (c',v') -> v `compare` v') tests
+  |otherwise = do
+               tests <- forM (coups s) $ \ci -> do
+                                 val <- snd <$> mcts terminalP coups jouer eval (maxdepth - 1) s
+                                 pure (ci,val)
+
+               pure $ maximumBy (\(c,v) (c',v') -> v `compare` v') tests
+     
+  
+
 
 test = do
   hands <- distribuerCartes
@@ -107,6 +143,7 @@ test = do
   val <- rollout' moi atout g 1 0
 
 --  putStrLn $ unlines $ show <$> plis
+  print val
   return val
 
 buildHands :: [Card] -> [(Player,Int)] -> [(Player,Hand)]
@@ -128,7 +165,6 @@ makePartialGame me g' remainingCards  = do
         havePlayed =  (snd <$> (g' ^. gPliCourant . _w)) \\ [me]
         
 
-        
 {-
 main n = do
    ret <- forM [1..n] (\ _ -> test)
