@@ -13,7 +13,7 @@ import System.Random.Shuffle
 import Coinche.Rules
 import Data.List
 import qualified Data.Array as A
-
+import System.Environment 
 
 simulator :: (s -> Player) -- get current player from state
           -> (s-> Bool)    -- true if the current state is terminal
@@ -140,12 +140,15 @@ playAGame = do
   finalState <- runGame g
   let s1 = score P_1 atout finalState
       s2 = score P_2 atout finalState
-  print (s1,s2,s1+s2)
+--  print (s1,s2,s1+s2)
   pure (s1,s2)
 
-main = let testN = 100
-       in do
-  ret <- forM [1.. testN] $ \_ -> playAGame
-  let s1 = sum $ fst <$> ret
-      s2 = sum $ snd <$> ret
-  print (fromIntegral s1 / fromIntegral testN, fromIntegral s2 / fromIntegral testN)
+main = do
+  args <- getArgs
+  let n = read (args !! 0)::Int
+  do
+    ret <- forM [1..n] $ \_ -> playAGame
+    let s1 = sum $ fst <$> ret
+        s2 = sum $ snd <$> ret
+    print $ "Average scores " ++ show (fromIntegral s1 / fromIntegral n,
+                                      fromIntegral s2 / fromIntegral n)
