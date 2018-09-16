@@ -112,13 +112,13 @@ samplePossibleGame g p remcards = do
 -- runs simulations inside the possibles games
 -- Derived from algo2 in:
 --  Furtak & Buro : Recursive Monte Carlo Search for Imperfect Information Games
-iimcAi :: Atout -> Int -> Game -> Player -> [Card] -> IO Card
-iimcAi atout n game player legalcards = do
+iimcAi :: Atout -> Int -> Int -> Game -> Player -> [Card] -> IO Card
+iimcAi atout ngames nsim game player legalcards = do
   -- compute a score for each card in several possible games
   remcards <- remainingCards game player
-  allscores <- forM [1..n] $ \_ -> (do 
+  allscores <- forM [1..ngames] $ \_ -> (do 
     possiblegame <- samplePossibleGame pogame player remcards
-    simul atout n possiblegame player legalcards) -- :: [[(Card, Double)]]
+    simul atout nsim possiblegame player legalcards) -- :: [[(Card, Double)]]
   -- sum the scores for each card accross the n simulated games
   let cardscores =
         (\x -> (fst $ head x, sum $ snd <$> x))
