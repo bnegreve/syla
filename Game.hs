@@ -88,10 +88,5 @@ compterPlis atout = do
             f (Pli p, winner) = (valeurPli atout $ fst <$> p , winner)
             (team1,team2) = foldl (\(counter1,counter2) (valeur,winner) -> if winner == P_1 || winner == P_3 then (valeur + counter1,counter2) else (counter1,valeur+counter2)) (0,0) plisValeurs
         undefined    
-gamePublicPlayer :: Player -> Game -> IO (Game, [ Card ]) 
-gamePublicPlayer p g = do
-     shuffledRemainingCards <- shuffleM remainingCards
-     pure (g',shuffledRemainingCards)
-  where g' = g { _gPlayersHands = _gPlayersHands g A.// [(pi, Hand []) | pi <- [P_1 .. P_4], pi /= p]  }
-        remainingCards = concat [mi | (pi,Hand mi) <- A.assocs $ _gPlayersHands g, pi /= p]
-        
+
+

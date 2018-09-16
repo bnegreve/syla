@@ -12,6 +12,7 @@ import Coinche.Rules
 import Data.List
 import qualified Data.Array as A
 
+
 {- create a partition of l where each member of the partition is of size n-}
 group' :: Int -> [a] -> [[a]]
 group' _ [] = []
@@ -71,45 +72,47 @@ score moi atout g
           | otherwise = acc
         lastWinner = snd $ last plisJoues 
 
+-- Plays a radom game and returns the score
 rollout :: Player -> Atout -> Game -> Double
-rollout moi atout g
-  | terminated g = fromIntegral $ score moi atout g
-  | otherwise = rollout moi atout $ jouerCarte' atout g (pickCard  coups)
+rollout me atout g
+  | terminated g = fromIntegral $ score me atout g
+  | otherwise = rollout me atout $ jouerCarte' atout g (pickCard  legalCards)
       where pickCard = head -- TODO
-            coups = coupsPossibles' atout g
-
-{- Evalue la valeur d'un état  -}
-rollout' :: Player -> Atout -> Game -> Int -> Int -> IO (Card,Double)
-rollout' me atout g n maxdepth = do
---  | terminated g = pure (score me atout g, g)
-      (g',remainingCards) <- gamePublicPlayer me g
-      let possibleMoves
-            | me ==  curPlayer = coupsPossibles' atout g'
-            | otherwise = [head $ validMoves atout g' $ Hand remainingCards]
-      stats <- forM possibleMoves $ \ci ->
-        let g'' = jouerCarte' atout g' ci
-        in do
-          if maxdepth == 0 then
-            do 
-               scores <- forM [1..n] $ \_ -> do
-                 newGame <- makePartialGame me g'' $ if curPlayer == me then  remainingCards else tail remainingCards
-                 let x = rollout me atout newGame --g''
-                 print x
-                 pure x
-               pure $ (ci, (sum scores) / fromIntegral n)
-            else do
-             results <- forM [1..n] $ \_ -> do newGame <- makePartialGame me g'' remainingCards
-                                               rollout' me atout newGame n (maxdepth - 1)
-             pure $ (ci,sum (snd <$> results) / fromIntegral n)
-      let bestMove = maximumBy (\(c,v) (c',v') -> v `compare` v') stats 
-      trace (show stats) $ pure $ bestMove    
+            legalCards = coupsPossibles' atout g
 
 
-      --coup <- head <$> shuffleM $ coupsPossibles' atout g'
-      --rollout moi atout $ jouerCarte' atout g' (pickCard  coups)
-      where 
-            coups = coupsPossibles' atout g
-            curPlayer = head $ g ^. gJoueursRestants
+-- {- Evalue la valeur d'un état  -}
+-- rollout' :: Player -> Atout -> Game -> Int -> Int -> IO (Card,Double)
+-- rollout' me atout g n maxdepth = do
+-- --  | terminated g = pure (score me atout g, g)
+--       (g',remainingCards) <- gamePublicPlayer me g
+--       let possibleMoves
+--             | me ==  curPlayer = coupsPossibles' atout g'
+--             | otherwise = [head $ validMoves atout g' $ Hand remainingCards]
+--       stats <- forM possibleMoves $ \ci ->
+--         let g'' = jouerCarte' atout g' ci
+--         in do
+--           if maxdepth == 0 then
+--             do 
+--                scores <- forM [1..n] $ \_ -> do
+--                  newGame <- makePartialGame me g'' $ if curPlayer == me then  remainingCards else tail remainingCards
+--                  let x = rollout me atout newGame --g''
+--                  print x
+--                  pure x
+--                pure $ (ci, (sum scores) / fromIntegral n)
+--             else do
+--              results <- forM [1..n] $ \_ -> do newGame <- makePartialGame me g'' remainingCards
+--                                                rollout' me atout newGame n (maxdepth - 1)
+--              pure $ (ci,sum (snd <$> results) / fromIntegral n)
+--       let bestMove = maximumBy (\(c,v) (c',v') -> v `compare` v') stats 
+--       trace (show stats) $ pure $ bestMove    
+
+
+--       --coup <- head <$> shuffleM $ coupsPossibles' atout g'
+--       --rollout moi atout $ jouerCarte' atout g' (pickCard  coups)
+--       where 
+--             coups = coupsPossibles' atout g
+--             curPlayer = head $ g ^. gJoueursRestants
             
 roll :: (s -> Bool) -> (s -> [c]) -> (s -> c -> s) ->  s -> IO s
 roll terminalP coups jouer s 
@@ -135,35 +138,19 @@ mcts terminalP coups jouer eval maxdepth s
   
 
 
-test = do
-  hands <- distribuerCartes
-  let g = initGame{_gJoueursRestants = [P_1, P_2, P_3, P_4], _gPlayersHands = hands}
-      atout = A Heart
-      moi = P_2
-  val <- rollout' moi atout g 1 0
+-- test = do
+--   hands <- distribuerCartes
+--   let g = initGame{_gJoueursRestants = [P_1, P_2, P_3, P_4], _gPlayersHands = hands}
+--       atout = A Heart
+--       moi = P_2
+--   val <- rollout' moi atout g 1 0
 
---  putStrLn $ unlines $ show <$> plis
-  print val
-  return val
+-- --  putStrLn $ unlines $ show <$> plis
+--   print val
+--   return val
 
-buildHands :: [Card] -> [(Player,Int)] -> [(Player,Hand)]
-buildHands remainingCards sizes = fst $ foldr f ([],remainingCards) sizes
-  where f (player,size) (hands,remCards) = let (hand, rest) = splitAt size remCards
-                                  in ((player,Hand hand) :hands, rest)
+-- Note: horrible function written by Sat
 
--- affects random hands to other players. Never modifies the hand of player Me
-makePartialGame :: Player -> Game -> [Card] -> IO Game
-makePartialGame me g' remainingCards  = do
-     randomizedRemainingCards <- shuffleM remainingCards
-     let randomHands = buildHands randomizedRemainingCards $
-                              [(pi,myHandSize) | pi <- remainingPlayers]
-                              ++ [(pi,myHandSize - 1) | pi <- havePlayed]
- 
-     pure $ g' & gPlayersHands %~ (A.// randomHands)
-  where myHandSize = length $ view _w $ _gPlayersHands g' A.! me
-        remainingPlayers = _gJoueursRestants g' \\ [me]
-        havePlayed =  (snd <$> (g' ^. gPliCourant . _w)) \\ [me]
-        
 
 {-
 main n = do
