@@ -88,7 +88,7 @@ rollout' me atout g n maxdepth = do
             | otherwise = [head $ validMoves atout g' $ Hand remainingCards]
       stats <- forM possibleMoves $ \ci ->
         let g'' = jouerCarte' atout g' ci
-	in do
+        in do
           if maxdepth == 0 then
             do 
                scores <- forM [1..n] $ \_ -> do
@@ -100,7 +100,7 @@ rollout' me atout g n maxdepth = do
             else do
              results <- forM [1..n] $ \_ -> do newGame <- makePartialGame me g'' remainingCards
                                                rollout' me atout newGame n (maxdepth - 1)
-	     pure $ (ci,sum (snd <$> results) / fromIntegral n)
+             pure $ (ci,sum (snd <$> results) / fromIntegral n)
       let bestMove = maximumBy (\(c,v) (c',v') -> v `compare` v') stats 
       trace (show stats) $ pure $ bestMove    
 
