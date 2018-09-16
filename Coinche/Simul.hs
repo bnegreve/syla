@@ -16,33 +16,30 @@ import Data.List
 import qualified Data.Array as A
 import System.Environment 
 
-simulator :: (s -> Player) -- get current player from state
-          -> (s-> Bool)    -- true if the current state is terminal
-          -> (s -> Player -> IO m) -- gives the player move
-          -> (s -> m -> s) -- plays the move
-          -> s -- current state
-          -> IO s -- final state
-simulator getCurrentPlayer terminalP getPlayerMove playMove game
+
+-- Generic function that simulates AI players and make them play against eachother
+-- Recursively calls iteself until the game is over and returns the final state.
+-- TODO: add a function to compute the list of legal moves and pass the list
+-- of legal moves to the AI function
+runGame :: (s -> Player) -- a function that returns the next player to play in s
+          -> (s-> Bool) -- a function that returns true iff s is terminal
+          -> (s -> Player -> IO m) -- AI function, gives the player next move
+          -> (s -> m -> s) -- a function that plays the move and return a new state
+          -> s -- the current state
+          -> IO s -- the final state at the end of the game
+runGame getCurrentPlayer terminalP getPlayerMove playMove game
   | terminalP game = pure game
   | otherwise = do
       let curPlayer = getCurrentPlayer game
       move <- getPlayerMove game curPlayer
-      simulator
+      runGame
         getCurrentPlayer
         terminalP
         getPlayerMove
         playMove
         (playMove game move)
 
--- triggers one AI to compute next player move
-getPlayerMoveCoinche :: Game -> Player -> IO Card
-getPlayerMoveCoinche game player
-  | player == P_1 || player == P_3 =  
-    dumbAi (A Heart) 1 game player (legalMoves game player)
-  | otherwise = 
---    basicAi (A Heart) 1 game player (legalMoves game player)
-    iimcAi (A Heart) 10 100 game player (legalMoves game player)
-    
+-- Returns the list of legal moves for player in a given state
 legalMoves :: Game -> Player -> [Card]
 legalMoves game player = validMoves (A Heart) game (_gPlayersHands game A.! player)
 
@@ -129,24 +126,8 @@ iimcAi atout ngames nsim game player legalcards = do
   where
     pogame = partiallyObservedGame player game -- partially observed game from player
 
-runGame = simulator getCurrentPlayer terminalP getPlayerMove playMove
-  where getCurrentPlayer game = head $ _gJoueursRestants game
-        terminalP game = and $ null . view _w <$> A.elems (_gPlayersHands game)
-        getPlayerMove = getPlayerMoveCoinche
-        playMove = jouerCarte' (A Heart)
-
-playAGame = do
-  hands <- distribuerCartes
-  startwith <- getStdRandom (randomR (0, 3)) -- who starts ?
-  let players = take 4 $ drop startwith ( cycle [P_1 .. P_4] ) 
-      game = initGame{_gJoueursRestants = players, _gPlayersHands = hands}
-      atout = A Heart
-  finalState <- runGame game
-  let s1 = score P_1 atout finalState
-      s2 = score P_2 atout finalState
-  print (s1,s2,s1+s2)
-  pure (s1,s2)
-
+-- Counts the number of victories
+-- For now, a victory for team1 is simply when team1 has more points than team2
 countVictories :: [(Int, Int)] -> (Int, Int)
 countVictories scores = foldl
   (\b a -> if (fst a) > (snd a) then
@@ -155,11 +136,39 @@ countVictories scores = foldl
                 (fst b, snd b + 1))
   (0,0) scores
 
+-- runGame specialized for coinche
+runCoinche = runGame getCurrentPlayer terminalP getPlayerMove playMove
+  where getCurrentPlayer game = head $ _gJoueursRestants game
+        terminalP game = and $ null . view _w <$> A.elems (_gPlayersHands game)
+        getPlayerMove = getPlayerMoveCoinche
+        playMove = jouerCarte' (A Heart)
+
+playACoinche = do
+  hands <- distribuerCartes
+  startwith <- getStdRandom (randomR (0, 3)) -- who starts ?
+  let players = take 4 $ drop startwith ( cycle [P_1 .. P_4] ) 
+      game = initGame{_gJoueursRestants = players, _gPlayersHands = hands}
+      atout = A Heart
+  finalState <- runCoinche game
+  let s1 = score P_1 atout finalState
+      s2 = score P_2 atout finalState
+  print (s1,s2,s1+s2)
+  pure (s1,s2)
+
+-- Call player's AI and compute the next player move 
+getPlayerMoveCoinche :: Game -> Player -> IO Card
+getPlayerMoveCoinche game player
+  | player == P_1 || player == P_3 =  
+    dumbAi (A Heart) 1 game player (legalMoves game player)
+  | otherwise = 
+--    basicAi (A Heart) 1 game player (legalMoves game player)
+    iimcAi (A Heart) 10 100 game player (legalMoves game player)
+
 main = do
   args <- getArgs
   let n = read (args !! 0)::Int
   do
-    ret <- forM [1..n] $ \_ -> playAGame
+    ret <- forM [1..n] $ \_ -> playACoinche
     let v = countVictories ret
         s1 = sum $ fst <$> ret
         s2 = sum $ snd <$> ret
