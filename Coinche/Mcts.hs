@@ -8,6 +8,7 @@ import Control.Lens
 import Coinche.Types
 import Coinche.Game
 import System.Random.Shuffle
+import System.Random
 import Coinche.Rules
 import Data.List
 import qualified Data.Array as A
@@ -73,13 +74,13 @@ score moi atout g
         lastWinner = snd $ last plisJoues 
 
 -- Plays a radom game and returns the score
-rollout :: Player -> Atout -> Game -> Double
+rollout :: Player -> Atout -> Game -> IO Double
 rollout me atout g
-  | terminated g = fromIntegral $ score me atout g
-  | otherwise = rollout me atout $ jouerCarte' atout g (pickCard  legalCards)
-      where pickCard = head -- TODO
-            legalCards = coupsPossibles' atout g
-
+  | terminated g = pure $ fromIntegral $ score me atout g
+  | otherwise = do
+      let legalcards = coupsPossibles' atout g
+      r <- getStdRandom (randomR (0, length legalcards - 1))
+      rollout me atout $ jouerCarte' atout g (legalcards !! r)
 
 -- {- Evalue la valeur d'un état  -}
 -- rollout' :: Player -> Atout -> Game -> Int -> Int -> IO (Card,Double)

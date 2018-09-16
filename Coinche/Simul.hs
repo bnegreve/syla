@@ -10,6 +10,7 @@ import Coinche.Types
 import Coinche.Game
 import Coinche.Mcts
 import System.Random.Shuffle
+import System.Random
 import Coinche.Rules
 import Data.List
 import qualified Data.Array as A
@@ -37,10 +38,10 @@ simulator getCurrentPlayer terminalP getPlayerMove playMove game
 getPlayerMoveCoinche :: Game -> Player -> IO Card
 getPlayerMoveCoinche game player
   | player == P_1 || player == P_3 =  
-    basicAi (A Heart) 1 game player (legalMoves game player)
+    dumbAi (A Heart) 1 game player (legalMoves game player)
   | otherwise = 
---    basicAi (A Heart) 100 game player (legalMoves game player)
-      iimcAi (A Heart) 100 10 game player (legalMoves game player)
+--    basicAi (A Heart) 1 game player (legalMoves game player)
+    iimcAi (A Heart) 10 100 game player (legalMoves game player)
     
 legalMoves :: Game -> Player -> [Card]
 legalMoves game player = validMoves (A Heart) game (_gPlayersHands game A.! player)
@@ -58,8 +59,9 @@ bestmove movescores =
 simul :: Atout -> Int -> Game -> Player -> [Card] -> IO [(Card, Double)]
 simul atout n game player cards = do
   forM cards $ \c -> do
-    let cardscores = [rollout player atout (jouerCarte' atout game c) | i <- [1..n]]
-        cardavgscore = sum cardscores / fromIntegral n
+    cardscores <- forM [1..n] $ \_ -> do
+      rollout player atout (jouerCarte' atout game c) 
+    let cardavgscore = sum cardscores / fromIntegral n
     pure (c, cardavgscore)
 
 -- AI: plays any card that is valid
@@ -135,20 +137,32 @@ runGame = simulator getCurrentPlayer terminalP getPlayerMove playMove
 
 playAGame = do
   hands <- distribuerCartes
-  let g = initGame{_gJoueursRestants = [P_1, P_2, P_3, P_4], _gPlayersHands = hands}
+  startwith <- getStdRandom (randomR (0, 3)) -- who starts ?
+  let players = take 4 $ drop startwith ( cycle [P_1 .. P_4] ) 
+      game = initGame{_gJoueursRestants = players, _gPlayersHands = hands}
       atout = A Heart
-  finalState <- runGame g
+  finalState <- runGame game
   let s1 = score P_1 atout finalState
       s2 = score P_2 atout finalState
---  print (s1,s2,s1+s2)
+  print (s1,s2,s1+s2)
   pure (s1,s2)
+
+countVictories :: [(Int, Int)] -> (Int, Int)
+countVictories scores = foldl
+  (\b a -> if (fst a) > (snd a) then
+                (fst b + 1, snd b)
+              else
+                (fst b, snd b + 1))
+  (0,0) scores
 
 main = do
   args <- getArgs
   let n = read (args !! 0)::Int
   do
     ret <- forM [1..n] $ \_ -> playAGame
-    let s1 = sum $ fst <$> ret
+    let v = countVictories ret
+        s1 = sum $ fst <$> ret
         s2 = sum $ snd <$> ret
+    print $ "Victories " ++ show v
     print $ "Average scores " ++ show (fromIntegral s1 / fromIntegral n,
                                       fromIntegral s2 / fromIntegral n)
