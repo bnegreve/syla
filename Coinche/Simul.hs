@@ -79,10 +79,11 @@ playACoinche = do
 getPlayerMoveCoinche :: Game -> Player -> IO Card
 getPlayerMoveCoinche game player
   | player == P_1 || player == P_3 =  
-    dumbAi (A Heart) 1 game player (legalMoves game player)
+--    dumbAi (A Heart) 1 game player (legalMoves game player)
+    iimcAiSmart (A Heart) 10 10 game player (legalMoves game player)
   | otherwise = 
 --    basicAi (A Heart) 1 game player (legalMoves game player)
-    iimcAi (A Heart) 10 100 game player (legalMoves game player)
+    iimcAi (A Heart) 10 10 game player (legalMoves game player)
 
 main = do
   args <- getArgs

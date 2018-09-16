@@ -21,7 +21,7 @@ data Color = Spike | Heart | Diamond | Club | ToutAt | SansAt
              deriving (Eq,Enum, Show, Ord)
 data Card = Card {_cRank :: Rank, _cColor :: Color}
             deriving (Show,Eq)
-
+colors = [Spike,Heart,Diamond,Club]
 newtype Atout = A Color
     deriving (Generic)
 instance Wrapped Atout

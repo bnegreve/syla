@@ -82,6 +82,7 @@ rollout me atout g
       r <- getStdRandom (randomR (0, length legalcards - 1))
       rollout me atout $ jouerCarte' atout g (legalcards !! r)
 
+
 -- {- Evalue la valeur d'un état  -}
 -- rollout' :: Player -> Atout -> Game -> Int -> Int -> IO (Card,Double)
 -- rollout' me atout g n maxdepth = do
