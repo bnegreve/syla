@@ -43,10 +43,14 @@ getPlayerMoveCoinche game player
 getLegalMoves :: Game -> Player -> [Card]
 getLegalMoves game player = validMoves (A Heart) game (_gPlayersHands game A.! player)
 
--- AI: plays any card that is valid
-dumbAi :: Atout -> Int -> Game -> Player -> [Card] -> IO Card
-dumbAi atout n game player cards = do
-  head <$> shuffleM cards
+-- simply returns the best move in a list of tuples (moves, scores)
+bestmove :: [(m, Double)] -> m
+bestmove movescores =
+  let max = maximumBy (\(m,s) (m',s') -> s `compare` s') movescores in
+    fst max
+
+-- COINCHE 
+
 
 -- Runs n rollouts for each possible card and returns the average
 -- score for each card.
@@ -57,14 +61,20 @@ simul atout n game player cards = do
         cardavgscore = sum cardscores / fromIntegral n
     pure (c, cardavgscore)
 
+-- AI: plays any card that is valid
+dumbAi :: Atout -> Int -> Game -> Player -> [Card] -> IO Card
+dumbAi atout n game player cards = do
+  head <$> shuffleM cards
+
+
 -- AI: runs n rollouts for each move and pick whatever move lead to the
 -- best average score. 
 -- Cheats because it knows the full game state (i.e. including the game hands)
 basicAi :: Atout -> Int -> Game -> Player -> [Card] -> IO Card
 basicAi atout n game player cards = do 
   cardscores <- simul atout n game player cards
-  let best = maximumBy (\(c,v) (c',v') -> v `compare` v') cardscores
-  pure $ fst best
+  pure $ bestmove cardscores
+  
 
 naiveSimu = simulator getCurrentPlayer terminalP getPlayerMove playMove
   where getCurrentPlayer game = head $ _gJoueursRestants game
