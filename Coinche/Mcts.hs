@@ -124,18 +124,18 @@ roll terminalP coups jouer s
                   roll terminalP coups jouer (jouer s randomCoup) 
      
   
-mcts :: (s -> Bool) -> (s -> [c]) -> (s -> c -> s) -> (s -> Double) -> Int -> s -> IO (c,Double)
-mcts terminalP coups jouer eval maxdepth s
-  |maxdepth == 1 = do tests <- forM (coups s) $ \ci -> do
-                                val <- eval <$> roll terminalP coups jouer s
-                                pure (ci,val)
-                      pure $ maximumBy (\(c,v) (c',v') -> v `compare` v') tests
-  |otherwise = do
-               tests <- forM (coups s) $ \ci -> do
-                                 val <- snd <$> mcts terminalP coups jouer eval (maxdepth - 1) s
-                                 pure (ci,val)
+-- mcts :: (s -> Bool) -> (s -> [c]) -> (s -> c -> s) -> (s -> Double) -> Int -> s -> IO (c,Double)
+-- mcts terminalP coups jouer eval maxdepth s
+--   |maxdepth == 1 = do tests <- forM (coups s) $ \ci -> do
+--                                 val <- eval <$> roll terminalP coups jouer s
+--                                 pure (ci,val)
+--                       pure $ maximumBy (\(c,v) (c',v') -> v `compare` v') tests
+--   |otherwise = do
+--                tests <- forM (coups s) $ \ci -> do
+--                                  val <- snd <$> mcts terminalP coups jouer eval (maxdepth - 1) s
+--                                  pure (ci,val)
 
-               pure $ maximumBy (\(c,v) (c',v') -> v `compare` v') tests
+--                pure $ maximumBy (\(c,v) (c',v') -> v `compare` v') tests
      
   
 

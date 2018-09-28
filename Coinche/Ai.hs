@@ -203,3 +203,4 @@ iimcAi atout ngames nsim game player legalcards = do
     pure $ bestmove cardscores
   where
     pogame = partiallyObservedGame player game -- partially observed game from player
+
