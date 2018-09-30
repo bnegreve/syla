@@ -16,13 +16,14 @@ import Data.List
 import qualified Data.Array as A
 import System.Environment 
 import Coinche.Ai
+import Coinche.AiMcts
 
 -- Generic function that simulates AI players and make them play against eachother
 -- Recursively calls iteself until the game is over and returns the final state.
 -- TODO: add a function to compute the list of legal moves and pass the list
 -- of legal moves to the AI function
 runGame :: (s -> Player) -- a function that returns the next player to play in s
-          -> (s-> Bool) -- a function that returns true iff s is terminal
+          -> (s -> Bool) -- a function that returns true iff s is terminal
           -> (s -> Player -> IO m) -- AI function, gives the player next move
           -> (s -> m -> s) -- a function that plays the move and return a new state
           -> s -- the current state
@@ -56,10 +57,14 @@ countVictories scores = foldl
                 (fst b, snd b + 1))
   (0,0) scores
 
+
+-- true if the game is over
+coincheOver :: Game -> Bool
+coincheOver game =  and $ null . view _w <$> A.elems (_gPlayersHands game)
+  
 -- runGame specialized for coinche
-runCoinche = runGame getCurrentPlayer terminalP getPlayerMove playMove
+runCoinche = runGame getCurrentPlayer coincheOver getPlayerMove playMove
   where getCurrentPlayer game = head $ _gJoueursRestants game
-        terminalP game = and $ null . view _w <$> A.elems (_gPlayersHands game)
         getPlayerMove = getPlayerMoveCoinche
         playMove = jouerCarte' (A Heart)
 
@@ -79,11 +84,12 @@ playACoinche = do
 getPlayerMoveCoinche :: Game -> Player -> IO Card
 getPlayerMoveCoinche game player
   | player == P_1 || player == P_3 =  
---    dumbAi (A Heart) 1 game player (legalMoves game player)
-    iimcAiSmart (A Heart) 10 10 game player (legalMoves game player)
+    dumbAi (A Heart) 1 game player (legalMoves game player)
+--    iimcAiSmart (A Heart) 10 10 game player (legalMoves game player)
   | otherwise = 
 --    basicAi (A Heart) 1 game player (legalMoves game player)
-    iimcAi (A Heart) 10 10 game player (legalMoves game player)
+--    iimcAi (A Heart) 10 10 game player (legalMoves game player)
+      mcts (A Heart) 1 3 game player (legalMoves game player)
 
 main = do
   args <- getArgs
