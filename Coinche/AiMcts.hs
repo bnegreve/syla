@@ -30,10 +30,20 @@ data MctsNode = MN { _mnGame :: Game,
                      _mnChildren :: [ MctsNode ]
                    }
 
+data MctsOpts = MO { _moNGames :: Int,
+                     _moNLoops :: Int, 
+                     _moNSim :: Int,
+                     _moAlpha :: Double}
+                     
+
 makeLenses ''MctsNode
 
-mctsAi :: Atout -> Int -> Int -> Int -> Game -> Player -> [Card] -> IO Card
-mctsAi trump ngames nloops nsim game player legalcards = do
+mctsAi :: MctsOpts -> Game -> Player -> Atout -> [Card] -> IO Card
+mctsAi (MO ngames nloops nsim alpha) game player trump legalcards =
+  mctsAi' trump ngames nloops nsim game player legalcards
+
+mctsAi' :: Atout -> Int -> Int -> Int -> Game -> Player -> [Card] -> IO Card
+mctsAi' trump ngames nloops nsim game player legalcards = do
   -- compute a score for each card in several possible games
   remcards <- remainingCards game player
   allscores <- forM [1..ngames] $ \_ -> do
@@ -176,7 +186,6 @@ nodeScore node = (_mnSumScore node) / (fromIntegral (_mnNbSim node))
 nodeScoreNormal :: MctsNode -> Double
 nodeScoreNormal node =
   (nodeScore node) / 162.0
-
 
 bestCard :: MctsNode -> Card
 bestCard node =

@@ -17,6 +17,11 @@ import qualified Data.Array as A
 import System.Environment 
 import Coinche.Ai
 import Coinche.AiMcts
+import Coinche.Cli
+import Options.Applicative
+import Data.Semigroup ((<>))
+
+
 
 -- Generic function that simulates AI players and make them play against eachother
 -- Recursively calls iteself until the game is over and returns the final state.
@@ -63,44 +68,54 @@ coincheOver :: Game -> Bool
 coincheOver game =  and $ null . view _w <$> A.elems (_gPlayersHands game)
   
 -- runGame specialized for coinche
-runCoinche = runGame getCurrentPlayer coincheOver getPlayerMove playMove
-  where getCurrentPlayer game = head $ _gJoueursRestants game
-        getPlayerMove = getPlayerMoveCoinche
-        playMove = jouerCarte' (A Heart)
 
-playACoinche = do
+runCoinche :: (Ai,Ai,Ai,Ai) -> Trump -> Game -> IO Game
+runCoinche playerAIs trump = runGame getCurrentPlayer coincheOver playermove playmove
+  where getCurrentPlayer game = head $ _gJoueursRestants game
+        playermove = playerMoveCoinche playerAIs trump
+        playmove = jouerCarte' (A Heart)
+
+playACoinche :: (Ai,Ai,Ai,Ai) -> IO (Int, Int)
+playACoinche playerAIs = do
   hands <- distribuerCartes
   startwith <- getStdRandom (randomR (0, 3)) -- who starts ?
   let players = take 4 $ drop startwith ( cycle [P_1 .. P_4] ) 
       game = initGame{_gJoueursRestants = players, _gPlayersHands = hands}
-      atout = A Heart
-  finalState <- runCoinche game
-  let s1 = score P_1 atout finalState
-      s2 = score P_2 atout finalState
+      trump = A Heart
+  finalState <- runCoinche playerAIs trump game
+  let s1 = score P_1 trump finalState
+      s2 = score P_2 trump finalState
   print (s1,s2,s1+s2)
   pure (s1,s2)
 
 -- Call player's AI and compute the next player move 
-getPlayerMoveCoinche :: Game -> Player -> IO Card
-getPlayerMoveCoinche game player
-  | player == P_1 || player == P_3 =  
---      dumbAi (A Heart) 1 game player (legalMoves game player)
-      mctsAi (A Heart) 10 40 10 game player (legalMoves game player)
---      iimcAi (A Heart) 10 10 game player (legalMoves game player)
-  | otherwise =
---      dumbAi (A Heart) 1 game player (legalMoves game player)
---    basicAi (A Heart) 1 game player (legalMoves game player)
---    iimcAi (A Heart) 10 10 game player (legalMoves game player)
-      mctsAi (A Heart) 10 10 10 game player (legalMoves game player)
+playerMoveCoinche :: (Ai,Ai,Ai,Ai) -> Trump -> Game -> Player -> IO Card
+playerMoveCoinche (p1ai, p2ai, p3ai, p4ai) trump game player
+  | player == P_1 = p1ai game player trump (legalMoves game player)
+  | player == P_2 = p2ai game player trump (legalMoves game player)
+  | player == P_3 = p3ai game player trump (legalMoves game player)
+  | player == P_4 = p4ai game player trump (legalMoves game player)
+  
+main' :: Options -> IO ()
+main' options = do
+  ret <- forM [1..n] $ \_ -> playACoinche (p1,p2,p3,p4)
+  let v = countVictories ret
+      s1 = sum $ fst <$> ret
+      s2 = sum $ snd <$> ret
+  putStrLn $ "team1 AI : " ++ show (_oTeam1 options)
+  putStrLn $ "team2 AI : " ++ show (_oTeam2 options)
+  putStrLn $ "Victories " ++ show v
+  putStrLn $ "Average scores " ++ show (fromIntegral s1 / fromIntegral n,
+                                     fromIntegral s2 / fromIntegral n)
+  where n  = _oNRounds options 
+        p1 = playerAi options P_1
+        p2 = playerAi options P_2
+        p3 = playerAi options P_3
+        p4 = playerAi options P_4
 
 main = do
-  args <- getArgs
-  let n = read (args !! 0)::Int
-  do
-    ret <- forM [1..n] $ \_ -> playACoinche
-    let v = countVictories ret
-        s1 = sum $ fst <$> ret
-        s2 = sum $ snd <$> ret
-    print $ "Victories " ++ show v
-    print $ "Average scores " ++ show (fromIntegral s1 / fromIntegral n,
-                                      fromIntegral s2 / fromIntegral n)
+  main' =<< execParser options
+    where
+    options = info (opts <**> helper)
+      ( fullDesc
+     <> progDesc "French Belote Player (actually Coinche).")
