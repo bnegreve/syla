@@ -73,7 +73,7 @@ score moi atout g
           | otherwise = acc
         lastWinner = snd $ last plisJoues 
 
--- Plays a radom game and returns the score
+-- Plays a random game and returns the score from player's perspective
 rollout :: Player -> Atout -> Game -> IO Double
 rollout me atout g
   | terminated g = pure $ fromIntegral $ score me atout g
