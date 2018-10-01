@@ -102,8 +102,8 @@ main' options = do
   let v = countVictories ret
       s1 = sum $ fst <$> ret
       s2 = sum $ snd <$> ret
-  putStrLn $ "team1 AI : " ++ show (_oTeam1 options)
-  putStrLn $ "team2 AI : " ++ show (_oTeam2 options)
+  putStrLn $ "team1 AI : " ++ show (_oT1Ai options)
+  putStrLn $ "team2 AI : " ++ show (_oT2Ai options)
   putStrLn $ "Victories " ++ show v
   putStrLn $ "Average scores " ++ show (fromIntegral s1 / fromIntegral n,
                                      fromIntegral s2 / fromIntegral n)

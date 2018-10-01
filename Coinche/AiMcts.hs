@@ -40,17 +40,17 @@ makeLenses ''MctsNode
 
 mctsAi :: MctsOpts -> Game -> Player -> Atout -> [Card] -> IO Card
 mctsAi (MO ngames nloops nsim alpha) game player trump legalcards =
-  mctsAi' trump ngames nloops nsim game player legalcards
+  mctsAi' trump ngames nloops nsim alpha game player legalcards
 
-mctsAi' :: Atout -> Int -> Int -> Int -> Game -> Player -> [Card] -> IO Card
-mctsAi' trump ngames nloops nsim game player legalcards = do
+mctsAi' :: Atout -> Int -> Int -> Int -> Double -> Game -> Player -> [Card] -> IO Card
+mctsAi' trump ngames nloops nsim alpha game player legalcards = do
   -- compute a score for each card in several possible games
   remcards <- remainingCards game player
   allscores <- forM [1..ngames] $ \_ -> do
     remcardsshuffled <- shuffleM remcards
 --    possiblegame <- samplePossibleGameSmart pogame player remcardsshuffled
     possiblegame <- samplePossibleGame pogame player remcards
-    mcts possiblegame player trump nloops nsim
+    mcts possiblegame player trump nloops nsim alpha
     
   let cardscores =
         (\x -> (fst $ head x, sum $ snd <$> x))
@@ -62,57 +62,58 @@ mctsAi' trump ngames nloops nsim game player legalcards = do
   where
     pogame = partiallyObservedGame player game -- partially observed game from player
 
-showTree :: MctsNode -> MctsNode -> Int -> IO ()
-showTree node parent depth 
-  | null children = do showNode node parent depth
+showTree :: MctsNode -> MctsNode -> Int -> Double -> IO ()
+showTree node parent depth alpha
+  | null children = do showNode node parent depth alpha
   | otherwise = do
-      showNode node parent depth 
-      forM children (\c -> showTree c node (depth+1))
+      showNode node parent depth alpha
+      forM children (\c -> showTree c node (depth+1) alpha)
       pure ()
   where children = (_mnChildren node)
 
-showNode :: MctsNode -> MctsNode -> Int -> IO ()
-showNode node parent depth = do
+showNode :: MctsNode -> MctsNode -> Int -> Double -> IO ()
+showNode node parent depth alpha = do
   putStrLn (prefix ++ "SCORE " ++ (show (nodeScore node))
                    ++ " NSIMS " ++ (show (_mnNbSim node))
-                   ++ " UCB " ++ (show (computeUCB node nn))
+                   ++ " UCB " ++ (show (computeUCB node nn alpha))
+                   ++ " ALPHA " ++ (show alpha)
                    ++ " " ++ (show (_mnCard node)))
   where prefix = take (2*depth) $ cycle " "
         nn = _mnNbSim parent
   
-mcts :: Game -> Player -> Atout -> Int -> Int -> IO [(Card, Double)]
-mcts game player trump nloops nsim = do
-  root' <- mctsLoop root nloops nsim
+mcts :: Game -> Player -> Atout -> Int -> Int -> Double -> IO [(Card, Double)]
+mcts game player trump nloops nsim alpha = do
+  root' <- mctsLoop root nloops nsim alpha
   -- putStrLn "End of MCTS"
   -- -- putStrLn (show (cardScores root'))
-  -- showTree root' root' 0
+  -- showTree root' root' 0 alpha
   pure $ cardScores root'
   where root = expandNode $
                newNode game player trump (Card C_7 Club) -- dummy card for rootnode
 
 -- calls mcts until we run out of budget (nloops)
-mctsLoop :: MctsNode -> Int -> Int -> IO MctsNode
-mctsLoop node nloops nsim
+mctsLoop :: MctsNode -> Int -> Int -> Double -> IO MctsNode
+mctsLoop node nloops nsim alpha
   | nloops == 0 = pure node
   | otherwise = do
-      newnode <- mctsRec node nsim 0
+      newnode <- mctsRec node nsim 0 alpha
       -- putStrLn ("End of Iter " ++ show (nloops))
       -- showTree newnode newnode 0
       -- putStrLn "-------------------"
-      mctsLoop newnode (nloops-1) nsim
+      mctsLoop newnode (nloops-1) nsim alpha
     
 -- moves down the MCTS tree, select a new node, run rollouts for this
 -- node, update the parent nodes 
-mctsRec :: MctsNode -> Int -> Int -> IO MctsNode
-mctsRec node nsim depth
+mctsRec :: MctsNode -> Int -> Int -> Double -> IO MctsNode
+mctsRec node nsim depth alpha
   | haschildren = do
-      thechild' <- mctsRec thechild nsim (depth+1)
+      thechild' <- mctsRec thechild nsim (depth+1) alpha
       pure $ updateNode node thechild thechild' otherchildren
   | otherwise = do
           node <- mctsRollout node nsim
           pure $ expandNode node
   where haschildren = not $ null $ _mnChildren node
-        thechild:otherchildren = orderChildrenUCB node
+        thechild:otherchildren = orderChildrenUCB node alpha
 
 -- update statistics for a node
 -- node: the node to update
@@ -129,8 +130,8 @@ updateNode node oldchild newchild otherchildren =
         nsimdiff = (_mnNbSim newchild) - (_mnNbSim oldchild)
 
 
-computeUCB :: MctsNode -> Int -> Double
-computeUCB node totalnsim
+computeUCB :: MctsNode -> Int -> Double -> Double
+computeUCB node totalnsim alpha 
   | n == 0 = 1000.0 -- return a large value if we have not tried this move so far
   | otherwise = w / n + 0.08 * (sqrt (log nn) / n)
   where w = nodeScoreNormal node
@@ -139,21 +140,12 @@ computeUCB node totalnsim
 
 -- returns the list of the children of a node sorted according to the UCB bound
 -- TODO: inefficient (recompute UCB), I should improve it.
-orderChildrenUCB :: MctsNode -> [MctsNode]
-orderChildrenUCB parent =
-  sortBy (\a b -> rcompare (computeUCB a totsim) (computeUCB b totsim)) children
+orderChildrenUCB :: MctsNode -> Double -> [MctsNode]
+orderChildrenUCB parent alpha =
+  sortBy (\a b -> rcompare (computeUCB a totsim alpha) (computeUCB b totsim alpha)) children
   where children = _mnChildren parent
         totsim = sum $ _mnNbSim <$> children
         rcompare = flip compare
-
--- Select a child from an expanded node
--- Fails if the node has not been expanded
-selectChild :: MctsNode -> MctsNode
-selectChild node = 
-  fst $ head $ sortBy (\(a,b) (a',b') -> compare b b') scores
-  where totalnsim = _mnNbSim node -- sum $ _mnNbSim <$> (_mnChildren node)
-        scores = [ (child, (computeUCB node totalnsim))
-                 | child <- _mnChildren node ] 
 
 -- Compte the direct children of a node and return a new updated node
 expandNode :: MctsNode -> MctsNode
