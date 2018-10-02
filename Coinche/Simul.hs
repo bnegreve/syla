@@ -107,6 +107,11 @@ main' options = do
   putStrLn $ "Victories " ++ show v
   putStrLn $ "Average scores " ++ show (fromIntegral s1 / fromIntegral n,
                                      fromIntegral s2 / fromIntegral n)
+  putStrLn $ "p1score:" ++ show (fromIntegral s1 / fromIntegral n)
+				     
+
+				     		     
+
   where n  = _oNRounds options 
         p1 = playerAi options P_1
         p2 = playerAi options P_2
