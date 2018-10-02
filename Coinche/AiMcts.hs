@@ -133,7 +133,7 @@ updateNode node oldchild newchild otherchildren =
 computeUCB :: MctsNode -> Int -> Double -> Double
 computeUCB node totalnsim alpha 
   | n == 0 = 1000.0 -- return a large value if we have not tried this move so far
-  | otherwise = w / n + 0.08 * (sqrt (log nn) / n)
+  | otherwise = w / n + 2 * alpha * (sqrt (log nn) / n)
   where w = nodeScoreNormal node
         nn = fromIntegral totalnsim
         n = fromIntegral $ _mnNbSim node
