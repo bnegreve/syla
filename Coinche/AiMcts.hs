@@ -85,7 +85,7 @@ mcts :: Game -> Player -> Atout -> Int -> Int -> Double -> IO [(Card, Double)]
 mcts game player trump nloops nsim alpha = do
   root' <- mctsLoop root nloops nsim alpha
   -- putStrLn "End of MCTS"
-  -- -- putStrLn (show (cardScores root'))
+  -- putStrLn (show (cardScores root'))
   -- showTree root' root' 0 alpha
   pure $ cardScores root'
   where root = expandNode $
@@ -132,8 +132,8 @@ updateNode node oldchild newchild otherchildren =
 
 computeUCB :: MctsNode -> Int -> Double -> Double
 computeUCB node totalnsim alpha 
-  | n == 0 = 1000.0 -- return a large value if we have not tried this move so far
-  | otherwise = w / n + 2 * alpha * (sqrt (log nn) / n)
+  | n == 0 = 1000 -- return a large value if we have not tried this move so far
+  | otherwise = w / n + 2 * alpha * (sqrt (2 * (log nn) / n))
   where w = nodeScoreNormal node
         nn = fromIntegral totalnsim
         n = fromIntegral $ _mnNbSim node
