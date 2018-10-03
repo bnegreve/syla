@@ -48,10 +48,15 @@ mctsAi' trump ngames nloops nsim alpha game player legalcards = do
   remcards <- remainingCards game player
   allscores <- forM [1..ngames] $ \_ -> do
     remcardsshuffled <- shuffleM remcards
---    possiblegame <- samplePossibleGameSmart pogame player remcardsshuffled
-    possiblegame <- samplePossibleGame pogame player remcards
+    -- smart possible game generation (may fail)
+    maybepossiblegame <- samplePossibleGameSmart observedgame player remcardsshuffled
+
+    -- fall back on a basic game generation if smart possible game generation has failed
+    possiblegame <- case maybepossiblegame of
+                      Nothing -> do
+                        samplePossibleGame observedgame player remcardsshuffled 
+                      Just possiblegame -> do pure $ possiblegame
     mcts possiblegame player trump nloops nsim alpha
-    
   let cardscores =
         (\x -> (fst $ head x, sum $ snd <$> x))
         <$> transpose allscores :: [(Card,Double)] in do    
@@ -60,7 +65,7 @@ mctsAi' trump ngames nloops nsim alpha game player legalcards = do
     -- putStrLn $ show $ bestmove cardscores
     pure $ bestmove cardscores
   where
-    pogame = partiallyObservedGame player game -- partially observed game from player
+    observedgame = partiallyObservedGame player game -- partially observed game from player
 
 showTree :: MctsNode -> MctsNode -> Int -> Double -> IO ()
 showTree node parent depth alpha

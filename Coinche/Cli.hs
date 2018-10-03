@@ -61,7 +61,7 @@ opts = O <$> option auto
           ( long "team1"
             <> short 't'
             <> metavar "AI-NAME"
-            <> value "iimcAi"
+            <> value "iimcAiSmart"
             <> showDefault
             <> help "Ai for team 1.")
           <*> strOption
