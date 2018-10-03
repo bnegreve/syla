@@ -104,11 +104,13 @@ main' options = do
       stdev1 = sqrt $ (sum $ (\(a,_) -> (fromIntegral a)**2) <$> ret) / nf - avg1**2
       avg2 = fromIntegral (sum $ snd <$> ret) / nf 
       stdev2 = sqrt $ (sum $ (\(_,b) -> (fromIntegral b)**2) <$> ret) / nf - avg2**2
+      ci1 = (avg1 - (stdev1 / (sqrt nf)), avg1 + (stdev1 / (sqrt nf)))
+      ci2 = (avg2 - (stdev2 / (sqrt nf)), avg2 + (stdev2 / (sqrt nf)))
   putStrLn $ "team1 AI : " ++ show (_oT1Ai options)
   putStrLn $ "team2 AI : " ++ show (_oT2Ai options)
   putStrLn $ "Victories " ++ show v
-  putStrLn $ "scorep1 " ++ (show avg1) ++ " " ++ (show stdev1)
-  putStrLn $ "scorep2 " ++ (show avg2) ++ " " ++ (show stdev2)
+  putStrLn $ "scorep1 " ++ (show avg1) ++ " " ++ (show stdev1) ++ " " ++ (show ci1)
+  putStrLn $ "scorep2 " ++ (show avg2) ++ " " ++ (show stdev2) ++ " " ++ (show ci2)
   where n  = _oNRounds options
         nf = fromIntegral n 
         p1 = playerAi options P_1
