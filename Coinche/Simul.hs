@@ -99,18 +99,18 @@ playerMoveCoinche (p1ai, p2ai, p3ai, p4ai) trump game player
 main' :: Options -> IO ()
 main' options = do
   ret <- forM [1..n] $ \_ -> playACoinche (p1,p2,p3,p4)
-  let v = countVictories ret
-      s1 = sum $ fst <$> ret
-      s2 = sum $ snd <$> ret
+  let v = countVictories ret      
+      avg1 = (fromIntegral (sum $ fst <$> ret)) / nf
+      stdev1 = sqrt $ (sum $ (\(a,_) -> (fromIntegral a)**2) <$> ret) / nf - avg1**2
+      avg2 = fromIntegral (sum $ snd <$> ret) / nf 
+      stdev2 = sqrt $ (sum $ (\(_,b) -> (fromIntegral b)**2) <$> ret) / nf - avg2**2
   putStrLn $ "team1 AI : " ++ show (_oT1Ai options)
   putStrLn $ "team2 AI : " ++ show (_oT2Ai options)
   putStrLn $ "Victories " ++ show v
-  putStrLn $ "scores " ++ show (fromIntegral s1 / fromIntegral n) ++ " " ++ show (fromIntegral s2 / fromIntegral n)
-				     
-
-				     		     
-
-  where n  = _oNRounds options 
+  putStrLn $ "scorep1 " ++ (show avg1) ++ " " ++ (show stdev1)
+  putStrLn $ "scorep2 " ++ (show avg2) ++ " " ++ (show stdev2)
+  where n  = _oNRounds options
+        nf = fromIntegral n 
         p1 = playerAi options P_1
         p2 = playerAi options P_2
         p3 = playerAi options P_3
