@@ -29,15 +29,19 @@ bestmove movescores =
   let max = maximumBy (\(m,s) (m',s') -> s `compare` s') movescores in
     fst max
 
--- Runs n rollouts for each possible card and returns the average
+-- Runs n rollouts and returns the average
 -- score for each card.
 simul :: Atout -> Int -> Game -> Player -> [Card] -> IO [(Card, Double)]
 simul atout n game player cards = do
-  forM cards $ \c -> do
-    cardscores <- forM [1..n] $ \_ -> do
+  forM (zip [1..] cards) $ \(i,c) -> do
+    let m' = if r /= 0 && rem i (div l r) == 0 then m+1 else m -- redistribute remaining simus
+    cardscores <- forM [1..m'] $ \_ -> do
       rollout player atout (jouerCarte' atout game c) 
-    let cardavgscore = sum cardscores / fromIntegral n
+    let cardavgscore = sum cardscores / fromIntegral m'
     pure (c, cardavgscore)
+  where l = length cards
+        m = div n l --round $ (fromIntegral n) / (fromIntegral (length cards))
+        r = rem n l
 
 -- Returns the cards that have not been seen by player
 -- (cards that have not been played and are not in player's hand)
