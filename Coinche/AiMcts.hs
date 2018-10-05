@@ -33,17 +33,19 @@ data MctsNode = MN { _mnGame :: Game,
 data MctsOpts = MO { _moNGames :: Int,
                      _moNLoops :: Int, 
                      _moNSim :: Int,
-                     _moAlpha :: Double}
+                     _moAlpha :: Double,
+                     _moNormalizeScores :: Bool
+                   }
                      
 
 makeLenses ''MctsNode
 
 mctsAi :: MctsOpts -> Game -> Player -> Atout -> [Card] -> IO Card
-mctsAi (MO ngames nloops nsim alpha) game player trump legalcards =
-  mctsAi' trump ngames nloops nsim alpha game player legalcards
+mctsAi (MO ngames nloops nsim alpha ns) game player trump legalcards =
+  mctsAi' trump ngames nloops nsim alpha ns game player legalcards
 
-mctsAi' :: Atout -> Int -> Int -> Int -> Double -> Game -> Player -> [Card] -> IO Card
-mctsAi' trump ngames nloops nsim alpha game player legalcards = do
+mctsAi' :: Atout -> Int -> Int -> Int -> Double -> Bool -> Game -> Player -> [Card] -> IO Card
+mctsAi' trump ngames nloops nsim alpha ns game player legalcards = do
   -- compute a score for each card in several possible games
   remcards <- remainingCards game player
   allscores <- forM [1..ngames] $ \_ -> do
@@ -56,14 +58,19 @@ mctsAi' trump ngames nloops nsim alpha game player legalcards = do
                       Nothing -> do
                         samplePossibleGame observedgame player remcardsshuffled 
                       Just possiblegame -> do pure $ possiblegame
-    mcts possiblegame player trump nloops nsim alpha
+    res <- mcts possiblegame player trump nloops nsim alpha :: IO [(Card, Double)]
+    if ns
+      then 
+        let scoresum = sum [ b | (_,b) <- res] in 
+          pure $ (\(c,d) -> (c,d/scoresum)) <$> res  -- normalize cardscores
+      else pure res
+
   let cardscores =
-        (\x -> (fst $ head x, sum $ snd <$> x))
-        <$> transpose allscores :: [(Card,Double)] in do    
-    -- putStrLn "MOVE "
-    -- putStrLn $ show cardscores
-    -- putStrLn $ show $ bestmove cardscores
-    pure $ bestmove cardscores
+        (\x -> (fst $ head x, sum $ snd <$> x)) <$> transpose allscores :: [(Card,Double)] in do    
+        -- putStrLn "MOVE "
+        -- putStrLn $ show cardscores
+        -- putStrLn $ show $ bestmove cardscores
+        pure $ bestmove cardscores
   where
     observedgame = partiallyObservedGame player game -- partially observed game from player
 

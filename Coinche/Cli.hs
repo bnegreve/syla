@@ -18,6 +18,9 @@ data Options = O { _oNRounds    :: Int
                  , _oMctsNLoops2 :: Int 
                  , _oMctsAlpha1 :: Double
                  , _oMctsAlpha2 :: Double
+                 , _oMctsNormalizeScores1 :: Bool
+                 , _oMctsNormalizeScores2 :: Bool
+
                  }
 
 data AiOpts = GenericAiOpts | MctsOpts
@@ -30,9 +33,9 @@ playerAi options player
   | ainame == "basicAi" = basicAi (GAO "basicAi" ngames nsim)
   | ainame == "iimcAi" = iimcAi (GAO "iimcAi" ngames nsim)  
   | ainame == "iimcAiSmart" = iimcAiSmart (GAO "iimcAi" ngames nsim)
-  | ainame == "mctsAi" = mctsAi (MO ngames nloops nsim alpha)  
+  | ainame == "mctsAi" = mctsAi (MO ngames nloops nsim alpha ns)  
   where (ainame, ngames, nsim) = basicOptions options player
-        (nloops, alpha) = mctsOptions options player 
+        (nloops, alpha, ns) = mctsOptions options player 
 
 playerAiName :: Options -> Player -> String
 playerAiName options player
@@ -44,10 +47,14 @@ basicOptions options player
   | player == P_1 || player == P_3 = (_oT1Ai options, _oNGames1 options, _oNSim1 options)
   | otherwise =  (_oT2Ai options, _oNGames2 options, _oNSim2 options)
 
-mctsOptions :: Options -> Player -> (Int, Double)
+mctsOptions :: Options -> Player -> (Int, Double, Bool)
 mctsOptions options player
-  | player == P_1 || player == P_3 = (_oMctsNLoops1 options, _oMctsAlpha1 options)
-  | otherwise = (_oMctsNLoops2 options, _oMctsAlpha2 options)
+  | player == P_1 || player == P_3 = (_oMctsNLoops1 options,
+                                      _oMctsAlpha1 options,
+                                      _oMctsNormalizeScores1 options)
+  | otherwise = (_oMctsNLoops2 options,
+                 _oMctsAlpha2 options,
+                 _oMctsNormalizeScores2 options)
 
 opts :: Parser Options
 opts = O <$> option auto
@@ -89,7 +96,7 @@ opts = O <$> option auto
           <*> option auto
           ( long "nsim1"
             <> short 's'
-            <> value 10
+            <> value 1
             <> metavar "N"
             <> showDefault
             <> help "Number of sims for team 1 AI." )
@@ -97,7 +104,7 @@ opts = O <$> option auto
           ( long "nsim2"
             <> short 'S'
             <> metavar "N"
-            <> value 10
+            <> value 1
             <> showDefault
             <> help "Number of sims for team 2 AI." )
           <*> option auto
@@ -118,7 +125,7 @@ opts = O <$> option auto
           ( long "alpha1"
             <> short 'a'
             <> metavar "N"
-            <> value 0.4
+            <> value 0.7
             <> showDefault
             <> help "alpha for team 1 mcts AI." )
           <*> option auto
@@ -128,3 +135,17 @@ opts = O <$> option auto
             <> value 0.4
             <> showDefault
             <> help "alpha for team 2 mcts AI." )
+          <*> option auto
+          ( long "normalizescores1"
+            <> short 'z'
+            <> metavar "N"
+            <> value False
+            <> showDefault
+            <> help "Normalize score flag for team 1 mcts AI." )
+          <*> option auto
+          ( long "normalizescores2"
+            <> short '2'
+            <> metavar "N"
+            <> value False -- not good
+            <> showDefault
+            <> help "Normalize score flag for team 2 mcts AI." )
