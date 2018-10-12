@@ -65,9 +65,7 @@ valeurPli (A atout) cards = sum $ fmap f cards
                 | atout == SansAt = valeurRankSansAT rank
                 | otherwise = valeurRankNormal rank
             
-showAnnonce (Annonce val color) = T.concat [T.pack $ show val, " à ", showColor color]
-instance Ord Annonce where
-  a `compare` a' = _aVal a `compare` _aVal a'
+showBid (Bid val color) = T.concat [T.pack $ show val, " @ ", showColor color]
 
 
 {-TODO Mettre les codes utf8 des cartes cartes -}
