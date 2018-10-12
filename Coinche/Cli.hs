@@ -2,8 +2,7 @@ module Coinche.Cli where
 
 import Options.Applicative
 import Data.Semigroup ((<>))
-import Coinche.Engine.Types
-import Coinche.Engine.Game
+import Coinche.Engine
 import Coinche.Ai.AiMcts
 import Coinche.Ai.Tools
 import Coinche.Ai.BasicAi

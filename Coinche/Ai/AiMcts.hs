@@ -9,9 +9,7 @@ import Debug.Trace
 import Control.Monad.State
 import Control.Monad
 import Control.Lens
-import Coinche.Engine.Types
-import Coinche.Engine.Game
-import Coinche.Engine.Rules
+import Coinche.Engine
 import Coinche.Ai.Tools
 import System.Random.Shuffle
 import System.Random

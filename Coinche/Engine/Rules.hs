@@ -9,14 +9,6 @@ import Control.Lens
 import GHC.Generics
 import qualified Data.Text as T
 
-showAnnonce (Annonce val color) = T.concat [T.pack $ show val, " à ", showColor color]
-instance Ord Annonce where
-  a `compare` a' = _aVal a `compare` _aVal a'
-               
-newtype Hand = Hand {_hand :: [Card]}                      
-  deriving (Generic, Show)
-instance  Wrapped Hand 
-
 
 trumpToInt :: Rank -> Int
 trumpToInt x = case x of

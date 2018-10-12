@@ -4,6 +4,7 @@ module Coinche.Engine.Game where
 import Debug.Trace
 import Coinche.Engine.Rules
 import Coinche.Engine.Types
+import Coinche.Engine.CardUtils
 import Data.List
 import Control.Lens
 import GHC.Generics
