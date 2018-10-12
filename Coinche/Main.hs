@@ -10,6 +10,7 @@ import Coinche.Engine
 import Coinche.Ai.Tools
 import Coinche.Ai.BasicAi
 import Coinche.Ai.AiMcts
+
 import System.Random.Shuffle
 import System.Random
 import Data.List
@@ -18,7 +19,7 @@ import System.Environment
 import Coinche.Cli
 import Options.Applicative
 import Data.Semigroup ((<>))
-
+import Control.Monad.Reader
 
 
 -- Generic function that simulates AI players and make them play against eachother
@@ -67,11 +68,11 @@ coincheOver game =  and $ null . view _w <$> A.elems (_gPlayersHands game)
   
 -- runGame specialized for coinche
 
-runCoinche :: (Ai,Ai,Ai,Ai) -> Trump -> Game -> IO Game
-runCoinche playerAIs trump = runGame getCurrentPlayer coincheOver playermove playmove
+runCoinche :: (Ai,Ai,Ai,Ai) -> Bid -> Game -> IO Game
+runCoinche playerAIs bid = runGame getCurrentPlayer coincheOver playermove playmove
   where getCurrentPlayer game = head $ _gJoueursRestants game
-        playermove = playerMoveCoinche playerAIs trump
-        playmove = playCard (A Heart)
+        playermove = playerMoveCoinche playerAIs bid
+        playmove = playCard $ _bColor bid
 
 playACoinche :: (Ai,Ai,Ai,Ai) -> IO (Int, Int)
 playACoinche playerAIs = do
@@ -80,19 +81,20 @@ playACoinche playerAIs = do
   let players = take 4 $ drop startwith ( cycle [P_1 .. P_4] ) 
       game = initGame{_gJoueursRestants = players, _gPlayersHands = hands}
       trump = A Heart
-  finalState <- runCoinche playerAIs trump game
+      bid = Bid CV_80 trump
+  finalState <- runCoinche playerAIs bid game
   let s1 = score P_1 trump finalState
       s2 = score P_2 trump finalState
   print (s1,s2,s1+s2)
   pure (s1,s2)
 
 -- Call player's AI and compute the next player move 
-playerMoveCoinche :: (Ai,Ai,Ai,Ai) -> Trump -> Game -> Player -> IO Card
-playerMoveCoinche (p1ai, p2ai, p3ai, p4ai) trump game player
-  | player == P_1 = p1ai game player trump (legalMoves game player)
-  | player == P_2 = p2ai game player trump (legalMoves game player)
-  | player == P_3 = p3ai game player trump (legalMoves game player)
-  | player == P_4 = p4ai game player trump (legalMoves game player)
+playerMoveCoinche :: (Ai,Ai,Ai,Ai) -> Bid -> Game -> Player -> IO Card
+playerMoveCoinche (p1ai, p2ai, p3ai, p4ai) bid game player
+  | player == P_1 = runReaderT (p1ai game player (legalMoves game player)) bid
+  | player == P_2 = runReaderT (p2ai game player (legalMoves game player)) bid
+  | player == P_3 = runReaderT (p3ai game player (legalMoves game player)) bid
+  | player == P_4 = runReaderT (p4ai game player (legalMoves game player)) bid
   
 main' :: Options -> IO ()
 main' options = do

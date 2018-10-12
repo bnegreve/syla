@@ -39,8 +39,9 @@ data MctsOpts = MO { _moNGames :: Int,
 makeLenses ''MctsNode
 
 mctsAi :: MctsOpts -> Ai
-mctsAi (MO ngames nloops nsim alpha ns) game player trump legalcards =
-  mctsAi' trump ngames nloops nsim alpha ns game player legalcards
+mctsAi (MO ngames nloops nsim alpha ns) game player legalcards = do 
+  trump <- askTrump
+  liftIO $ mctsAi' trump ngames nloops nsim alpha ns game player legalcards
 
 mctsAi' :: Atout -> Int -> Int -> Int -> Double -> Bool -> Game -> Player -> [Card] -> IO Card
 mctsAi' trump ngames nloops nsim alpha ns game player legalcards = do
