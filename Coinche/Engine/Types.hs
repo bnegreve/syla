@@ -5,6 +5,7 @@ import Control.Lens
 import Data.Ix
 import GHC.Generics
 import qualified Data.Text  as T
+import qualified Data.Array as A
 
 data Player = P_1 | P_2 | P_3 | P_4
               deriving (Eq,Show,Enum, Ord, Ix)
@@ -42,3 +43,16 @@ newtype Hand = Hand {_hand :: [Card]}
   deriving (Generic, Show)
 instance  Wrapped Hand 
 
+
+newtype Pli = Pli [(Card,Player)]
+    deriving Generic
+instance Wrapped Pli
+
+{- Une manche après que les annonces soient faites -}
+data Game = Game { _gPlisJoues :: [(Pli,Player)],
+                   _gPliCourant :: Pli,
+                   -- Les joueurs dans l'ordre de jeu
+                   _gJoueursRestants :: [Player],
+                   _gPlayersHands :: A.Array Player Hand
+                   }
+makeLenses ''Game
