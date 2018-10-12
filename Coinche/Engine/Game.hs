@@ -20,12 +20,13 @@ initGame = Game [] (Pli []) [] (A.listArray (P_1,P_4) $ repeat $ Hand [])
 
 couleurDemandee p = RoundColor $ _cColor $ head p
 
-meilleureCarteDuPli :: Atout -> [(Card,Player)] -> Maybe (Card,Player)
+meilleureCarteDuPli :: Trump -> [(Card,Player)] -> Maybe (Card,Player)
 meilleureCarteDuPli _ [] = Nothing
-meilleureCarteDuPli a l = pure $ foldl1 f l  -- LA CARTE INITIALE EST LA PREMIERE
- where f acc el = case comparerCarte a (fst acc) (fst el) of
+meilleureCarteDuPli trump l = pure $ foldl1 f l  -- LA CARTE INITIALE EST LA PREMIERE
+ where f acc el = case comparerCarte trump (fst acc) (fst el) of
                        GT -> acc
                        LT -> el
+
 coequipierP a currentPlayer (Pli pl)
     | null pl = False
     | otherwise = coequipier (snd $ fromJust $ meilleureCarteDuPli a pl) == currentPlayer
