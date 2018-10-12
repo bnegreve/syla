@@ -20,9 +20,10 @@ data GenericAiOpts = GAO { _gaoAiName :: String,
                            _gaoNGames :: Int,
                            _gaoNSim :: Int }
 
+type Ai = Game -> Player -> Atout -> [Card] -> IO Card
 
 -- AI: plays any card that is valid
-dumbAi :: Game -> Player -> Atout -> [Card] -> IO Card
+dumbAi :: Ai
 dumbAi game player trump legalcards = do
   head <$> shuffleM legalcards
 
@@ -38,7 +39,7 @@ basicAi' atout n game player legalcards = do
   cardscores <- simul atout n game player legalcards
   pure $ bestmove cardscores
 
-iimcAi :: GenericAiOpts -> Game -> Player -> Atout -> [Card] -> IO Card
+iimcAi :: GenericAiOpts -> Ai
 iimcAi (GAO _ ngames nsim) game player trump legalcards = 
   iimcAi' trump ngames nsim game player legalcards
 
@@ -61,7 +62,7 @@ iimcAi' atout ngames nsim game player legalcards = do
   where
     pogame = partiallyObservedGame player game -- partially observed game from player
 
-iimcAiSmart :: GenericAiOpts -> Game -> Player -> Atout -> [Card] -> IO Card
+iimcAiSmart :: GenericAiOpts -> Ai
 iimcAiSmart (GAO _ ngames nsim) game player trump legalcards = 
   iimcAiSmart' trump ngames nsim game player legalcards
 

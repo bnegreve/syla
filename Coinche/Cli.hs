@@ -24,8 +24,6 @@ data Options = O { _oNRounds    :: Int
                  }
 
 data AiOpts = GenericAiOpts | MctsOpts
-
-type Ai = Game -> Player -> Atout -> [Card] -> IO Card
   
 playerAi :: Options -> Player -> Ai 
 playerAi options player 
