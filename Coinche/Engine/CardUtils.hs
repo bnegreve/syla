@@ -65,7 +65,7 @@ valeurPli (A atout) cards = sum $ fmap f cards
                 | atout == SansAt = valeurRankSansAT rank
                 | otherwise = valeurRankNormal rank
             
-showBid (Bid val color) = T.concat [T.pack $ show val, " @ ", showColor color]
+showBid (Bid val color) = T.concat [T.pack $ show val, " @ ", T.pack $ show color]
 
 
 {-TODO Mettre les codes utf8 des cartes cartes -}

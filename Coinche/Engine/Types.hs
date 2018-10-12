@@ -15,11 +15,6 @@ data Player = P_1 | P_2 | P_3 | P_4
 data BidVal = CV_80 | CV_90 | CV_100 | CV_110 | CV_120 | CV_130 | CV_140 | CV_150 | CV_160 | CV_170 | CV_180 | CV_CAPOT
                    deriving (Eq, Ord,Show)
 
-data Bid = Bid { _bVal :: BidVal, _bColor :: Color}
-               deriving (Show, Eq)
-
-instance Ord Bid where
-  b `compare` b' = _bVal b `compare` _bVal b'
 
 data Rank = C_7 | C_8 | C_9 | C_J | C_Q | C_K | C_10 | C_As
             deriving (Show,Enum,Eq)
@@ -29,10 +24,16 @@ data Card = Card {_cRank :: Rank, _cColor :: Color}
             deriving (Show,Eq)
 colors = [Spike,Heart,Diamond,Club]
 newtype Atout = A Color
-    deriving (Generic)
+    deriving (Generic,Show,Eq)
 type Trump = Atout
 
 instance Wrapped Atout
+
+data Bid = Bid { _bVal :: BidVal, _bColor :: Trump}
+               deriving (Show, Eq)
+
+instance Ord Bid where
+  b `compare` b' = _bVal b `compare` _bVal b'
 
 newtype RoundColor = RoundColor Color
     deriving (Generic, Show)
@@ -62,4 +63,9 @@ data Game = Game { _gPlisJoues :: [(Pli,Player)],
                    }
 makeLenses ''Game
 
-type CardGameT = ReaderT Bid IO
+type CardGameT  = ReaderT Bid
+type CardGameTP = CardGameT Identity
+type CardGameTIO = CardGameT IO
+
+askTrump :: (Monad m) => CardGameT m Trump
+askTrump = _bColor <$> ask
