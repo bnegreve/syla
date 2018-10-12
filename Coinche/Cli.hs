@@ -2,10 +2,11 @@ module Coinche.Cli where
 
 import Options.Applicative
 import Data.Semigroup ((<>))
-import Coinche.Types
-import Coinche.Game
-import Coinche.AiMcts
-import Coinche.Ai
+import Coinche.Engine.Types
+import Coinche.Engine.Game
+import Coinche.Ai.AiMcts
+import Coinche.Ai.Tools
+import Coinche.Ai.BasicAi
 
 data Options = O { _oNRounds    :: Int
                  , _oT1Ai      :: String

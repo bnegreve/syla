@@ -1,15 +1,16 @@
-module Coinche.Mcts where
+module Coinche.Ai.Tools where
 
 import Data.List
 import Debug.Trace
 import Control.Monad.State
 import Control.Monad
 import Control.Lens
-import Coinche.Types
-import Coinche.Game
+import Coinche.Engine.Types
+import Coinche.Engine.Game
+import Coinche.Engine.Rules
 import System.Random.Shuffle
 import System.Random
-import Coinche.Rules
+
 import Data.List
 import qualified Data.Array as A
 
@@ -81,40 +82,6 @@ rollout me atout g
       let legalcards = coupsPossibles' atout g
       r <- getStdRandom (randomR (0, length legalcards - 1))
       rollout me atout $ jouerCarte' atout g (legalcards !! r)
-
-
--- {- Evalue la valeur d'un état  -}
--- rollout' :: Player -> Atout -> Game -> Int -> Int -> IO (Card,Double)
--- rollout' me atout g n maxdepth = do
--- --  | terminated g = pure (score me atout g, g)
---       (g',remainingCards) <- gamePublicPlayer me g
---       let possibleMoves
---             | me ==  curPlayer = coupsPossibles' atout g'
---             | otherwise = [head $ validMoves atout g' $ Hand remainingCards]
---       stats <- forM possibleMoves $ \ci ->
---         let g'' = jouerCarte' atout g' ci
---         in do
---           if maxdepth == 0 then
---             do 
---                scores <- forM [1..n] $ \_ -> do
---                  newGame <- makePartialGame me g'' $ if curPlayer == me then  remainingCards else tail remainingCards
---                  let x = rollout me atout newGame --g''
---                  print x
---                  pure x
---                pure $ (ci, (sum scores) / fromIntegral n)
---             else do
---              results <- forM [1..n] $ \_ -> do newGame <- makePartialGame me g'' remainingCards
---                                                rollout' me atout newGame n (maxdepth - 1)
---              pure $ (ci,sum (snd <$> results) / fromIntegral n)
---       let bestMove = maximumBy (\(c,v) (c',v') -> v `compare` v') stats 
---       trace (show stats) $ pure $ bestMove    
-
-
---       --coup <- head <$> shuffleM $ coupsPossibles' atout g'
---       --rollout moi atout $ jouerCarte' atout g' (pickCard  coups)
---       where 
---             coups = coupsPossibles' atout g
---             curPlayer = head $ g ^. gJoueursRestants
             
 roll :: (s -> Bool) -> (s -> [c]) -> (s -> c -> s) ->  s -> IO s
 roll terminalP coups jouer s 
@@ -122,40 +89,3 @@ roll terminalP coups jouer s
   |otherwise = do let possibilites = coups s
                   randomCoup <- head <$> shuffleM possibilites
                   roll terminalP coups jouer (jouer s randomCoup) 
-     
-  
--- mcts :: (s -> Bool) -> (s -> [c]) -> (s -> c -> s) -> (s -> Double) -> Int -> s -> IO (c,Double)
--- mcts terminalP coups jouer eval maxdepth s
---   |maxdepth == 1 = do tests <- forM (coups s) $ \ci -> do
---                                 val <- eval <$> roll terminalP coups jouer s
---                                 pure (ci,val)
---                       pure $ maximumBy (\(c,v) (c',v') -> v `compare` v') tests
---   |otherwise = do
---                tests <- forM (coups s) $ \ci -> do
---                                  val <- snd <$> mcts terminalP coups jouer eval (maxdepth - 1) s
---                                  pure (ci,val)
-
---                pure $ maximumBy (\(c,v) (c',v') -> v `compare` v') tests
-     
-  
-
-
--- test = do
---   hands <- distribuerCartes
---   let g = initGame{_gJoueursRestants = [P_1, P_2, P_3, P_4], _gPlayersHands = hands}
---       atout = A Heart
---       moi = P_2
---   val <- rollout' moi atout g 1 0
-
--- --  putStrLn $ unlines $ show <$> plis
---   print val
---   return val
-
--- Note: horrible function written by Sat
-
-
-{-
-main n = do
-   ret <- forM [1..n] (\ _ -> test)
-   print $  (sum ret) / fromIntegral n
--}

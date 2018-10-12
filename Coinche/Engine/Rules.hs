@@ -1,8 +1,8 @@
 {-# LANGUAGE TemplateHaskell, DeriveGeneric, OverloadedStrings#-}
+module Coinche.Engine.Rules where
 
-module Coinche.Rules where
 import Debug.Trace
-import Coinche.Types
+import Coinche.Engine.Types
 import System.Random.Shuffle
 import Data.List
 import Control.Lens

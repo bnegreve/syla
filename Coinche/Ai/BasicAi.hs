@@ -1,4 +1,4 @@
-module Coinche.Ai where
+module Coinche.Ai.BasicAi where
 
 import Data.Maybe
 import Data.List
@@ -6,12 +6,12 @@ import Debug.Trace
 import Control.Monad.State
 import Control.Monad
 import Control.Lens
-import Coinche.Types
-import Coinche.Game
-import Coinche.Mcts
+import Coinche.Engine.Types
+import Coinche.Engine.Game
+import Coinche.Engine.Rules
+import Coinche.Ai.Tools
 import System.Random.Shuffle
 import System.Random
-import Coinche.Rules
 import Data.List
 import qualified Data.Array as A
 import System.Environment 

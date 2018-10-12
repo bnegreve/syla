@@ -1,9 +1,9 @@
 {-# LANGUAGE TemplateHaskell, DeriveGeneric #-}
-module Coinche.Game where
+module Coinche.Engine.Game where
 
 import Debug.Trace
-import Coinche.Rules
-import Coinche.Types
+import Coinche.Engine.Rules
+import Coinche.Engine.Types
 import Data.List
 import Control.Lens
 import GHC.Generics

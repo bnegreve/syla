@@ -1,4 +1,4 @@
-module Coinche.Simul where
+module Coinche.Main where
 
 
 import Data.List
@@ -6,17 +6,17 @@ import Debug.Trace
 import Control.Monad.State
 import Control.Monad
 import Control.Lens
-import Coinche.Types
-import Coinche.Game
-import Coinche.Mcts
+import Coinche.Engine.Types
+import Coinche.Engine.Game
+import Coinche.Engine.Rules
+import Coinche.Ai.Tools
+import Coinche.Ai.BasicAi
+import Coinche.Ai.AiMcts
 import System.Random.Shuffle
 import System.Random
-import Coinche.Rules
 import Data.List
 import qualified Data.Array as A
 import System.Environment 
-import Coinche.Ai
-import Coinche.AiMcts
 import Coinche.Cli
 import Options.Applicative
 import Data.Semigroup ((<>))

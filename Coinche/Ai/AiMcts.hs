@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-module Coinche.AiMcts where
+module Coinche.Ai.AiMcts where
 
 
 import Data.Maybe
@@ -9,17 +9,17 @@ import Debug.Trace
 import Control.Monad.State
 import Control.Monad
 import Control.Lens
-import Coinche.Types
-import Coinche.Game
-import Coinche.Mcts
+import Coinche.Engine.Types
+import Coinche.Engine.Game
+import Coinche.Engine.Rules
+import Coinche.Ai.Tools
 import System.Random.Shuffle
 import System.Random
-import Coinche.Rules
 import Data.List
 import qualified Data.Array as A
 import System.Environment 
 import qualified Data.Map as M
-import Coinche.Ai
+import Coinche.Ai.BasicAi
 
 data MctsNode = MN { _mnGame :: Game,
                      _mnPlayer :: Player, 

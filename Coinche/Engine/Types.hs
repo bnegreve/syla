@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveGeneric,TemplateHaskell,OverloadedStrings #-}
-module Coinche.Types where 
+module Coinche.Engine.Types where 
 import Data.List
 import Control.Lens
 import Data.Ix
