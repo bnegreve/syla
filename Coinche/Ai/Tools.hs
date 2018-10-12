@@ -20,7 +20,7 @@ rollout me atout g
   | otherwise = do
       let legalcards = coupsPossibles' atout g
       r <- getStdRandom (randomR (0, length legalcards - 1))
-      rollout me atout $ jouerCarte' atout g (legalcards !! r)
+      rollout me atout $ playCard atout g (legalcards !! r)
             
 roll :: (s -> Bool) -> (s -> [c]) -> (s -> c -> s) ->  s -> IO s
 roll terminalP coups jouer s 
@@ -42,7 +42,7 @@ simul atout n game player cards = do
   forM (zip [1..] cards) $ \(i,c) -> do
     let m' = if r /= 0 && rem i (div l r) == 0 then m+1 else m -- redistribute remaining simus
     cardscores <- forM [1..m'] $ \_ -> do
-      rollout player atout (jouerCarte' atout game c) 
+      rollout player atout (playCard atout game c) 
     let cardavgscore = sum cardscores / fromIntegral m'
     pure (c, cardavgscore)
   where l = length cards

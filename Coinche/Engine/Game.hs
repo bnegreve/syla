@@ -56,8 +56,8 @@ gagnantPli atout pli = winner
                      GT -> acc
                      LT -> el
                      EQ -> undefined
-jouerCarte' :: Atout -> Game -> Card -> Game
-jouerCarte' atout g c = gFinal
+playCard :: Atout -> Game -> Card -> Game
+playCard atout g c = gFinal
   where g' = g & gJoueursRestants %~ tail
         g'' = g' & gPliCourant . _w %~ (++ [(c,curPlayer)])
         g''' = g'' & gPlayersHands . ix curPlayer . _w %~ delete c

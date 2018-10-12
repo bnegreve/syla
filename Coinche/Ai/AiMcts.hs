@@ -160,7 +160,7 @@ orderChildrenUCB parent alpha =
 -- Compte the direct children of a node and return a new updated node
 expandNode :: MctsNode -> MctsNode
 expandNode node = node {
-  _mnChildren = [ newNode (jouerCarte' trump game card) player trump card |
+  _mnChildren = [ newNode (playCard trump game card) player trump card |
                   card <- coupsPossibles' trump game ] }
   where trump = _mnAsset node
         game = _mnGame node

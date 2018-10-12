@@ -71,7 +71,7 @@ runCoinche :: (Ai,Ai,Ai,Ai) -> Trump -> Game -> IO Game
 runCoinche playerAIs trump = runGame getCurrentPlayer coincheOver playermove playmove
   where getCurrentPlayer game = head $ _gJoueursRestants game
         playermove = playerMoveCoinche playerAIs trump
-        playmove = jouerCarte' (A Heart)
+        playmove = playCard (A Heart)
 
 playACoinche :: (Ai,Ai,Ai,Ai) -> IO (Int, Int)
 playACoinche playerAIs = do
