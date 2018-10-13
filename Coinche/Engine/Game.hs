@@ -14,6 +14,7 @@ import qualified Data.Array as A
 import Data.Ix
 import Data.Maybe
 import System.Random.Shuffle
+import System.Random
 
 -- dummy Game creator
 initGame = Game [] (Pli []) [] (A.listArray (P_1,P_4) $ repeat $ Hand [])
@@ -100,3 +101,14 @@ turnColor :: Pli -> Maybe Color
 turnColor (Pli []) = Nothing
 turnColor (Pli turn) = Just $ _cColor $ fst $ head turn
   
+-- Basic initialization procedure: create a fixed Bid, distribute hands
+-- choose a player to start with, and returns the bid and the game
+startCoinche :: IO (Bid, Game)
+startCoinche = do
+  hands <- distribuerCartes
+  startwith <- liftIO $ getStdRandom (randomR (0, 3)) -- who starts ?
+  let players = take 4 $ drop startwith ( cycle [P_1 .. P_4] ) 
+      game = initGame{_gJoueursRestants = players, _gPlayersHands = hands}
+      trump = A Heart
+      bid = Bid CV_80 trump
+  return (bid, game)

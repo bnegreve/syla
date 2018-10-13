@@ -76,12 +76,7 @@ runCoinche playerAIs bid = runGame getCurrentPlayer coincheOver playermove playm
 
 playACoinche :: (Ai,Ai,Ai,Ai) -> IO (Int, Int)
 playACoinche playerAIs = do
-  hands <- distribuerCartes
-  startwith <- getStdRandom (randomR (0, 3)) -- who starts ?
-  let players = take 4 $ drop startwith ( cycle [P_1 .. P_4] ) 
-      game = initGame{_gJoueursRestants = players, _gPlayersHands = hands}
-      trump = A Heart
-      bid = Bid CV_80 trump
+  (bid, game) <- startCoinche
   finalState <- runCoinche playerAIs bid game
   let s1 = score P_1 trump finalState
       s2 = score P_2 trump finalState
