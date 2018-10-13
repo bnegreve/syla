@@ -10,5 +10,6 @@ ghc -O3 --make Coinche.Main -main-is Coinche.Main
 
 
 # To run the webserver, compile and run Coinche.WebServer.Http
-ghc -O3 --make Coinche.WebServer.Http -main-is Coinche.WebServer.Http
+ghc -O3 --make Coinche.WebServer.Http -main-is Coinche.WebServer.Http -XDeriveGeneric
 ./Coinche/WebServer/Http
+

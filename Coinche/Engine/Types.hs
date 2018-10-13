@@ -17,11 +17,11 @@ data BidVal = CV_80 | CV_90 | CV_100 | CV_110 | CV_120 | CV_130 | CV_140 | CV_15
 
 
 data Rank = C_7 | C_8 | C_9 | C_J | C_Q | C_K | C_10 | C_As
-            deriving (Show,Enum,Eq)
+            deriving (Show,Enum,Eq,Generic)
 data Color = Spike | Heart | Diamond | Club | ToutAt | SansAt
-             deriving (Eq,Enum, Show, Ord)
+             deriving (Eq,Enum, Show, Ord, Generic)
 data Card = Card {_cRank :: Rank, _cColor :: Color}
-            deriving (Show,Eq)
+            deriving (Show,Eq, Generic)
 colors = [Spike,Heart,Diamond,Club]
 newtype Atout = A Color
     deriving (Generic,Show,Eq)
