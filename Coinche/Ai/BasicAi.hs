@@ -20,12 +20,12 @@ data GenericAiOpts = GAO { _gaoAiName :: String,
                            _gaoNGames :: Int,
                            _gaoNSim :: Int }
 
-type Ai = Game -> Player -> [Card] -> CardGameTIO Card
+type Ai = Game -> Player -> [Card] -> CardGameTIO [(Card, Double)]
 
 -- AI: plays any card that is valid
 dumbAi :: Ai
 dumbAi game player legalcards = do
-  liftIO $ head <$> shuffleM legalcards
+  liftIO $ zip  <$> shuffleM legalcards <*> pure (1:repeat 0)
 
 basicAi :: GenericAiOpts -> Ai 
 basicAi (GAO _ _ nsim) game player legalcards = do
@@ -35,10 +35,10 @@ basicAi (GAO _ _ nsim) game player legalcards = do
 -- AI: runs n rollouts for each move and pick whatever move lead to the
 -- best average score. 
 -- Cheats because it knows the full game state (all players hands)
-basicAi' :: Atout -> Int -> Game -> Player -> [Card] -> IO Card
+basicAi' :: Atout -> Int -> Game -> Player -> [Card] -> IO [(Card, Double)]
 basicAi' atout n game player legalcards = do 
   cardscores <- simul atout n game player legalcards
-  pure $ bestmove cardscores
+  pure $ [(ci,score) | (ci,_,score) <- cardscores]
 
 iimcAi :: GenericAiOpts -> Ai
 iimcAi (GAO _ ngames nsim) game player legalcards = do
@@ -49,13 +49,13 @@ iimcAi (GAO _ ngames nsim) game player legalcards = do
 -- runs simulations inside the possibles games
 -- Warning: In this versions the games are sampled without analyzing
 -- the previous turns
-iimcAi' :: Atout -> Int -> Int -> Game -> Player -> [Card] -> IO Card
+iimcAi' :: Atout -> Int -> Int -> Game -> Player -> [Card] -> IO [(Card, Double)]
 iimcAi' atout ngames nsim game player legalcards = do
   -- compute a score for each card in several possible games
   remcards <- remainingCards game player
   allscores <- forM [1..ngames] $ \_ -> do 
     possiblegame <- samplePossibleGame pogame player remcards
-    simul atout nsim possiblegame player legalcards -- :: [[(Card, Double)]]
+    simul atout nsim possiblegame player legalcards
   -- sum the scores for each card accross the n simulated games
   let cardscores =
         (\x -> (fst $ head x, sum $ snd <$> x))
@@ -73,7 +73,7 @@ iimcAiSmart (GAO _ ngames nsim) game player legalcards = do
 -- runs simulations inside the possibles games
 -- Derived from algo2 in:
 --  Furtak & Buro : Recursive Monte Carlo Search for Imperfect Information Games
-iimcAiSmart' :: Atout -> Int -> Int -> Game -> Player -> [Card] -> IO Card
+iimcAiSmart' :: Atout -> Int -> Int -> Game -> Player -> [Card] -> IO [(Card, Double)]
 iimcAiSmart' atout ngames nsim game player legalcards = do
   -- compute a score for each card in several possible games
   remcards <- remainingCards game player

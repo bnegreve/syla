@@ -14,6 +14,7 @@ import Coinche.Ai.AiMcts
 import System.Random.Shuffle
 import System.Random
 import Data.List
+import qualified Data.Map as M
 import qualified Data.Array as A
 import System.Environment 
 import Coinche.Cli
@@ -29,21 +30,22 @@ import qualified Data.ByteString.Lazy as B
 -- of legal moves to the AI function
 runGame :: (s -> Player) -- a function that returns the next player to play in s
           -> (s -> Bool) -- a function that returns true iff s is terminal
-          -> (s -> Player -> IO m) -- AI function, gives the player next move
+          -> (s -> Player -> IO (m, GameStats) ) -- AI function, gives the player next move
           -> (s -> m -> s) -- a function that plays the move and return a new state
           -> s -- the current state
-          -> IO s -- the final state at the end of the game
+          -> IO (s, GameStats) -- the final state at the end of the game and gametats 
 runGame getCurrentPlayer terminalP getPlayerMove playMove game
-  | terminalP game = pure game
+  | terminalP game = pure (game,mempty)
   | otherwise = do
       let curPlayer = getCurrentPlayer game
-      move <- getPlayerMove game curPlayer
-      runGame
+      (move, gamestats) <- getPlayerMove game curPlayer
+      (finalState,finalGameStats) <- runGame
         getCurrentPlayer
         terminalP
         getPlayerMove
         playMove
         (playMove game move)
+      pure $ (finalState, mappend gamestats finalGameStats)
 
 -- Returns the list of legal moves for player in a given state
 legalMoves :: Game -> Player -> [Card]
@@ -69,7 +71,7 @@ coincheOver game =  and $ null . view _w <$> A.elems (_gPlayersHands game)
   
 -- runGame specialized for coinche
 
-runCoinche :: (Ai,Ai,Ai,Ai) -> Bid -> Game -> IO Game
+runCoinche :: (Ai,Ai,Ai,Ai) -> Bid -> Game -> IO (Game,GameStats)
 runCoinche playerAIs bid = runGame getCurrentPlayer coincheOver playermove playmove
   where getCurrentPlayer game = head $ _gJoueursRestants game
         playermove = playerMoveCoinche playerAIs bid
@@ -78,21 +80,29 @@ runCoinche playerAIs bid = runGame getCurrentPlayer coincheOver playermove playm
 playACoinche :: (Ai,Ai,Ai,Ai) -> IO (Int, Int)
 playACoinche playerAIs = do
   (bid@(Bid _ trump) , game) <- startCoinche
-  finalState <- runCoinche playerAIs bid game
+  (finalState,stats) <- runCoinche playerAIs bid game
   let s1 = score P_1 trump finalState
       s2 = score P_2 trump finalState
-  B.appendFile "games.log" $ encode finalState
+  --B.appendFile "games.log" $ encode finalState
+--  logs <- decode <$> B.readFile "games2.log" :: IO [(Game,GameStats)]
+  B.writeFile "games.log" $ encode $ (finalState,stats)
   print (s1,s2,s1+s2)
   pure (s1,s2)
 
+
+
 -- Call player's AI and compute the next player move 
-playerMoveCoinche :: (Ai,Ai,Ai,Ai) -> Bid -> Game -> Player -> IO Card
+--playerMoveCoinche :: (Ai,Ai,Ai,Ai) -> Bid -> Game -> Player -> IO Card
+playerMoveCoinche :: (Ai,Ai,Ai,Ai) -> Bid -> Game -> Player -> IO (Card, GameStats)
 playerMoveCoinche (p1ai, p2ai, p3ai, p4ai) bid game player
-  | player == P_1 = runReaderT (p1ai game player (legalMoves game player)) bid
-  | player == P_2 = runReaderT (p2ai game player (legalMoves game player)) bid
-  | player == P_3 = runReaderT (p3ai game player (legalMoves game player)) bid
-  | player == P_4 = runReaderT (p4ai game player (legalMoves game player)) bid
-  
+  | player == P_1 = recordStats <$> runReaderT (p1ai game player (legalMoves game player)) bid
+  | player == P_2 = recordStats <$> runReaderT (p2ai game player (legalMoves game player)) bid
+  | player == P_3 = recordStats <$> runReaderT (p3ai game player (legalMoves game player)) bid
+  | player == P_4 = recordStats <$> runReaderT (p4ai game player (legalMoves game player)) bid
+  where
+    recordStats :: Distribution -> (Card, GameStats)
+    recordStats dist = (bestmove dist, GameStats $ M.fromList [(player,[dist])])
+
 main' :: Options -> IO ()
 main' options = do
   ret <- forM [1..n] $ \_ -> playACoinche (p1,p2,p3,p4)

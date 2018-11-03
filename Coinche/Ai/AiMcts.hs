@@ -43,7 +43,8 @@ mctsAi (MO ngames nloops nsim alpha ns) game player legalcards = do
   trump <- askTrump
   liftIO $ mctsAi' trump ngames nloops nsim alpha ns game player legalcards
 
-mctsAi' :: Atout -> Int -> Int -> Int -> Double -> Bool -> Game -> Player -> [Card] -> IO Card
+mctsAi' :: Atout -> Int -> Int -> Int -> Double -> Bool ->
+           Game -> Player -> [Card] -> IO [(Card, Double)]
 mctsAi' trump ngames nloops nsim alpha ns game player legalcards = do
   -- compute a score for each card in several possible games
   remcards <- remainingCards game player
@@ -69,7 +70,7 @@ mctsAi' trump ngames nloops nsim alpha ns game player legalcards = do
         -- putStrLn "MOVE "
         -- putStrLn $ show cardscores
         -- putStrLn $ show $ bestmove cardscores
-        pure $ bestmove cardscores
+        pure $ cardscores
   where
     observedgame = partiallyObservedGame player game -- partially observed game from player
 
