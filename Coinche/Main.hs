@@ -20,7 +20,8 @@ import Coinche.Cli
 import Options.Applicative
 import Data.Semigroup ((<>))
 import Control.Monad.Reader
-
+import Data.Binary
+import qualified Data.ByteString.Lazy as B
 
 -- Generic function that simulates AI players and make them play against eachother
 -- Recursively calls iteself until the game is over and returns the final state.
@@ -76,10 +77,11 @@ runCoinche playerAIs bid = runGame getCurrentPlayer coincheOver playermove playm
 
 playACoinche :: (Ai,Ai,Ai,Ai) -> IO (Int, Int)
 playACoinche playerAIs = do
-  (bid, game) <- startCoinche
+  (bid@(Bid _ trump) , game) <- startCoinche
   finalState <- runCoinche playerAIs bid game
   let s1 = score P_1 trump finalState
       s2 = score P_2 trump finalState
+  B.appendFile "games.log" $ encode finalState
   print (s1,s2,s1+s2)
   pure (s1,s2)
 

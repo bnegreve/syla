@@ -8,9 +8,10 @@ import qualified Data.Text  as T
 import qualified Data.Array as A
 import Control.Monad.Reader
 import Control.Monad.Trans
+import Data.Binary
 
 data Player = P_1 | P_2 | P_3 | P_4
-              deriving (Eq,Show,Enum, Ord, Ix)
+              deriving (Eq,Show,Enum, Ord, Ix, Generic)
 
 data BidVal = CV_80 | CV_90 | CV_100 | CV_110 | CV_120 | CV_130 | CV_140 | CV_150 | CV_160 | CV_170 | CV_180 | CV_CAPOT
                    deriving (Eq, Ord,Show)
@@ -22,6 +23,7 @@ data Color = Spike | Heart | Diamond | Club | ToutAt | SansAt
              deriving (Eq,Enum, Show, Ord, Generic)
 data Card = Card {_cRank :: Rank, _cColor :: Color}
             deriving (Show,Eq, Generic)
+
 colors = [Spike,Heart,Diamond,Club]
 newtype Atout = A Color
     deriving (Generic,Show,Eq)
@@ -61,7 +63,18 @@ data Game = Game { _gPlisJoues :: [(Pli,Player)],
                    _gJoueursRestants :: [Player],
                    _gPlayersHands :: A.Array Player Hand
                    }
+            deriving Generic
+
+          
 makeLenses ''Game
+
+instance Binary Player
+instance Binary Hand
+instance Binary Pli
+instance Binary Card
+instance Binary Rank
+instance Binary Color
+instance Binary Game
 
 type CardGameT  = ReaderT Bid
 type CardGameTP = CardGameT Identity
@@ -69,3 +82,4 @@ type CardGameTIO = CardGameT IO
 
 askTrump :: (Monad m) => CardGameT m Trump
 askTrump = _bColor <$> ask
+
