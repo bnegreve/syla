@@ -38,7 +38,7 @@ basicAi (GAO _ _ nsim) game player legalcards = do
 basicAi' :: Atout -> Int -> Game -> Player -> [Card] -> IO [(Card, Double)]
 basicAi' atout n game player legalcards = do 
   cardscores <- simul atout n game player legalcards
-  pure $ [(ci,score) | (ci,_,score) <- cardscores]
+  pure $ [(ci,score) | (ci,(_,score)) <- cardscores]
 
 iimcAi :: GenericAiOpts -> Ai
 iimcAi (GAO _ ngames nsim) game player legalcards = do
@@ -46,16 +46,25 @@ iimcAi (GAO _ ngames nsim) game player legalcards = do
   liftIO $ iimcAi' trump ngames nsim game player legalcards
 
 
--- Aggregates card scores accross different games (compute average score)
-aggregateScores :: [[(Card, Int, Double)]] -> [(Card, Double)]
-aggregateScores allscores =  [(card, avgscore) | (card, scores) <- M.assocs $ scoremaps,
-                                                let avgscore = (sum $ snd <$> scores) / fromIntegral (sum $ fst <$> scores) ]
-  where buildcardmaps :: [(Card,Int,Double)] -> M.Map Card [(Int,Double)]
-        buildcardmaps cardtriples =
-          M.fromList $ fmap (\(ci,ni,score) -> (ci, [(ni,score)] )) cardtriples
-        mergemaps :: [M.Map Card [(Int, Double)]] -> M.Map Card [(Int,Double)]
-        mergemaps cardmaps = foldr1 (M.unionWith (++)) cardmaps
-        scoremaps = mergemaps $ fmap buildcardmaps allscores
+aggregateScores :: [[(Card, (Int, Double))]] -> [(Card, Double)]
+aggregateScores allscores = aggregate <$>  (transpose allscores)
+  where aggregate :: [(Card, (Int, Double))] -> (Card, Double)
+        aggregate cardrecords = (card, avgscore)
+          where card = fst $ head $ cardrecords
+                sumcounts = sum $ (fst . snd) <$> cardrecords
+                sumscores = sum $ (snd . snd) <$> cardrecords
+                avgscore = sumscores / fromIntegral sumcounts
+  
+-- -- Aggregates card scores accross different games (compute average score)
+-- aggregateScores :: [[(Card, Int, Double)]] -> [(Card, Double)]
+-- aggregateScores allscores =  [(card, avgscore) | (card, scores) <- M.assocs $ scoremaps,
+--                                                 let avgscore = (sum $ snd <$> scores) / fromIntegral (sum $ fst <$> scores) ]
+--   where buildcardmaps :: [(Card,Int,Double)] -> M.Map Card [(Int,Double)]
+--         buildcardmaps cardtriples =
+--           M.fromList $ fmap (\(ci,ni,score) -> (ci, [(ni,score)] )) cardtriples
+--         mergemaps :: [M.Map Card [(Int, Double)]] -> M.Map Card [(Int,Double)]
+--         mergemaps cardmaps = foldr1 (M.unionWith (++)) cardmaps
+--         scoremaps = mergemaps $ fmap buildcardmaps allscores
 
 
 
