@@ -35,35 +35,16 @@ bestmove movescores =
   let max = maximumBy (\(m,s) (m',s') -> s `compare` s') movescores in
     fst max
 
--- -- Runs n rollouts total and returns the # of rollouts and the average score for each card.
--- simul :: Atout -> Int -> Game -> Player -> [Card] -> IO [(Card, Int, Double)]
--- simul atout n game player cards = do
---   cards' <- shuffleM cards
---   ret <- forM (zip [1..] cards') $ \(i,c) -> do
---     let m' = if r /= 0 && rem i (div l r) == 0 then m+1 else m -- redistribute remaining simus
---     cardscores <- forM [1..m'] $ \_ -> do
---       rollout player atout (playCard atout game c) 
---     let cardavgscore = sum cardscores / fromIntegral m'
---     pure (c, m', cardavgscore)
---   pure $ [(c, m', avgscore) | (c, m', avgscore) <- ret, m' /= 0]
---   where l = length cards
---         m = div n l --round $ (fromIntegral n) / (fromIntegral (length cards))
---         r = rem n l
-
-
--- Runs n rollouts total and returns the # of rollouts and the average score for each card.
-simul :: Atout -> Int -> Game -> Player -> [Card] -> IO [(Card, (Int, Double))]
+-- Runs n rollouts total and returns the # of rollouts and the sum of scores for each card.
+-- In (Card, Int, Double), the Int is the number of sims, the Double is the sum of scores 
+simul :: Atout -> Int -> Game -> Player -> [Card] -> IO [(Card, Int, Double)]
 simul atout n game player cards = do
   cards' <- shuffleM cards
-  forM (zip [1..] cards') $ \(i,c) -> do
+  forM (zip [1..] cards) $ \(i,c) -> do
     let m' = if r /= 0 && rem i (div l r) == 0 then m+1 else m -- redistribute remaining simus
-    if m' /= 0 then do
-      cardscores <- forM [1..m'] $ \_ -> do
-        rollout player atout (playCard atout game c) 
-      let cardavgscore = sum cardscores / fromIntegral m'
-      pure (c, (m', cardavgscore))
-     else
-      pure (c, (0, 0))
+    cardscores <- forM [1..m'] $ \_ -> do
+      rollout player atout (playCard atout game c)
+    pure (c, m', sum cardscores)
   where l = length cards
         m = div n l --round $ (fromIntegral n) / (fromIntegral (length cards))
         r = rem n l

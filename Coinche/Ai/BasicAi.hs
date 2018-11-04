@@ -38,36 +38,31 @@ basicAi (GAO _ _ nsim) game player legalcards = do
 basicAi' :: Atout -> Int -> Game -> Player -> [Card] -> IO [(Card, Double)]
 basicAi' atout n game player legalcards = do 
   cardscores <- simul atout n game player legalcards
-  pure $ [(ci,score) | (ci,(_,score)) <- cardscores]
+  pure $ [(ci,score/fromIntegral m) | (ci,m,score) <- cardscores]
 
 iimcAi :: GenericAiOpts -> Ai
 iimcAi (GAO _ ngames nsim) game player legalcards = do
   trump <- askTrump
   liftIO $ iimcAi' trump ngames nsim game player legalcards
 
-
-aggregateScores :: [[(Card, (Int, Double))]] -> [(Card, Double)]
-aggregateScores allscores = aggregate <$>  (transpose allscores)
-  where aggregate :: [(Card, (Int, Double))] -> (Card, Double)
-        aggregate cardrecords = (card, avgscore)
-          where card = fst $ head $ cardrecords
-                sumcounts = sum $ (fst . snd) <$> cardrecords
-                sumscores = sum $ (snd . snd) <$> cardrecords
-                avgscore = sumscores / fromIntegral sumcounts
-  
--- -- Aggregates card scores accross different games (compute average score)
--- aggregateScores :: [[(Card, Int, Double)]] -> [(Card, Double)]
--- aggregateScores allscores =  [(card, avgscore) | (card, scores) <- M.assocs $ scoremaps,
---                                                 let avgscore = (sum $ snd <$> scores) / fromIntegral (sum $ fst <$> scores) ]
---   where buildcardmaps :: [(Card,Int,Double)] -> M.Map Card [(Int,Double)]
---         buildcardmaps cardtriples =
---           M.fromList $ fmap (\(ci,ni,score) -> (ci, [(ni,score)] )) cardtriples
---         mergemaps :: [M.Map Card [(Int, Double)]] -> M.Map Card [(Int,Double)]
---         mergemaps cardmaps = foldr1 (M.unionWith (++)) cardmaps
---         scoremaps = mergemaps $ fmap buildcardmaps allscores
-
-
-
+-- score aggregation function: averages the average scores accross all games 
+avgAvgAgg :: [(Int, Double)] -> Double
+avgAvgAgg cardscores = avgAvg
+  where nonnulls = [ (s / fromIntegral n) | (n, s) <- cardscores, n /= 0 ]
+        n = length nonnulls
+        s = sum nonnulls
+        avgAvg = if n /= 0 then s / fromIntegral n else 0.0
+        
+-- Aggregates card scores accross different games (compute average score)
+aggregateScores :: [[(Card, Int, Double)]] -> [(Card, Double)]
+aggregateScores allscores =  [(card, aggscore) | (card, scores) <- M.assocs $ scoremaps,
+                              let aggscore = avgAvgAgg scores ]
+  where buildcardmaps :: [(Card,Int,Double)] -> M.Map Card [(Int,Double)]
+        buildcardmaps cardtriples = M.fromList [ (c, [(n,s)]) | (c, n, s) <- cardtriples ]
+        mergemaps :: [M.Map Card [(Int, Double)]] -> M.Map Card [(Int,Double)]
+        mergemaps cardmaps = foldr1 (M.unionWith (++)) cardmaps
+        scoremaps = mergemaps $ fmap buildcardmaps allscores
+        
 -- AI: sample possible games from current game state and
 -- runs simulations inside the possibles games
 -- Warning: In this versions the games are sampled without analyzing
@@ -81,11 +76,11 @@ iimcAi' atout ngames nsim game player legalcards = do
     simul atout nsim possiblegame player legalcards
   -- sum the scores for each card accross the n simulated games
   let cardscores = aggregateScores allscores
---  print cardscores
+  -- print cardscores
   pure $ cardscores
   where
     pogame = partiallyObservedGame player game -- partially observed game from player
-    thd (_,_,x) =x 
+
     
 iimcAiSmart :: GenericAiOpts -> Ai
 iimcAiSmart (GAO _ ngames nsim) game player legalcards = do 
@@ -111,13 +106,11 @@ iimcAiSmart' atout ngames nsim game player legalcards = do
       possiblegame <- samplePossibleGame pogame player remcards
       simul atout nsim possiblegame player legalcards -- :: [[(Card, Double)]]
   -- sum the scores for each card accross the n simulated games
-  let cardscores = undefined
-        -- (\x -> (fst $ head x, (fromIntegral $ sum $ thd <$> x) / (sum $ snd <$> x) ))
-        -- <$> transpose allscores :: [(Card,Double)] in do
+  let cardscores = aggregateScores allscores
 --    putStrLn ""
   pure $ cardscores
   where
     pogame = partiallyObservedGame player game -- partially observed game from playe
-    thd (_,_,x) = x
+
 
 

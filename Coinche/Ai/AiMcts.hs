@@ -49,7 +49,7 @@ mctsAi' trump ngames nloops nsim alpha ns game player legalcards = do
   -- compute a score for each card in several possible games
   remcards <- remainingCards game player
   allscores <- forM [1..ngames] $ \_ -> do
-    remcardsshuffled <- shuffleM remcards
+    remcardsshuffled <- shuffleM remcards    
     -- smart possible game generation (may fail)
     maybepossiblegame <- samplePossibleGameSmart observedgame player remcardsshuffled
 
@@ -58,19 +58,9 @@ mctsAi' trump ngames nloops nsim alpha ns game player legalcards = do
                       Nothing -> do
                         samplePossibleGame observedgame player remcardsshuffled 
                       Just possiblegame -> do pure $ possiblegame
-    res <- mcts possiblegame player trump nloops nsim alpha :: IO [(Card, Double)]
-    if ns
-      then 
-        let scoresum = sum [ b | (_,b) <- res] in 
-          pure $ (\(c,d) -> (c,d/scoresum)) <$> res  -- normalize cardscores
-      else pure res
-
-  let cardscores =
-        (\x -> (fst $ head x, sum $ snd <$> x)) <$> transpose allscores :: [(Card,Double)] in do    
-        -- putStrLn "MOVE "
-        -- putStrLn $ show cardscores
-        -- putStrLn $ show $ bestmove cardscores
-        pure $ cardscores
+    mcts possiblegame player trump nloops nsim alpha :: IO [(Card, Int, Double)]
+  --  print allscores
+  pure $ aggregateScores allscores
   where
     observedgame = partiallyObservedGame player game -- partially observed game from player
 
@@ -93,15 +83,14 @@ showNode node parent depth alpha = do
   where prefix = take (2*depth) $ cycle " "
         nn = _mnNbSim parent
   
-mcts :: Game -> Player -> Atout -> Int -> Int -> Double -> IO [(Card, Double)]
+mcts :: Game -> Player -> Atout -> Int -> Int -> Double -> IO [(Card, Int, Double)]
 mcts game player trump nloops nsim alpha = do
+  root <- expandNode $ newNode game player trump (Card C_7 Club) -- dummy card for rootnode
   root' <- mctsLoop root nloops nsim alpha
   -- putStrLn "End of MCTS"
   -- putStrLn (show (cardScores root'))
   -- showTree root' root' 0 alpha
-  pure $ cardScores root'
-  where root = expandNode $
-               newNode game player trump (Card C_7 Club) -- dummy card for rootnode
+  pure $ cardScores root'               
 
 -- calls mcts until we run out of budget (nloops)
 mctsLoop :: MctsNode -> Int -> Int -> Double -> IO MctsNode
@@ -123,7 +112,7 @@ mctsRec node nsim depth alpha
       pure $ updateNode node thechild thechild' otherchildren
   | otherwise = do
           node <- mctsRollout node nsim
-          pure $ expandNode node
+          expandNode node
   where haschildren = not $ null $ _mnChildren node
         thechild:otherchildren = orderChildrenUCB node alpha
 
@@ -160,13 +149,16 @@ orderChildrenUCB parent alpha =
         rcompare = flip compare
 
 -- Compte the direct children of a node and return a new updated node
-expandNode :: MctsNode -> MctsNode
-expandNode node = node {
-  _mnChildren = [ newNode (playCard trump game card) player trump card |
-                  card <- coupsPossibles' trump game ] }
+expandNode :: MctsNode -> IO MctsNode
+expandNode node = do 
+  shuffeledmoves <- shuffleM $ moves
+  pure node {
+    _mnChildren = [ newNode (playCard trump game card) player trump card |
+                    card <- shuffeledmoves ] }
   where trump = _mnAsset node
         game = _mnGame node
         player = _mnPlayer node
+        moves = coupsPossibles' trump game
 
 -- Runs a nbsim rollouts on a child-less node and returns a node with updated stats
 mctsRollout :: MctsNode -> Int -> IO MctsNode
@@ -198,9 +190,7 @@ bestCard node =
     (_mnCard best)
   where first:rest = (_mnChildren node)
 
-cardScores :: MctsNode -> [(Card, Double)]
+cardScores :: MctsNode -> [(Card, Int, Double)]
 cardScores node =
-  [ ( (_mnCard node), (nodeScore node) ) |
-    node <- _mnChildren node,
-    not $ isnan $ nodeScore node ]
-  where isnan = \x -> x /= x
+  [ ( _mnCard node, _mnNbSim node, _mnSumScore node) | node <- _mnChildren node, _mnNbSim node > 0 ]
+
