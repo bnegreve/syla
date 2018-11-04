@@ -85,7 +85,7 @@ playACoinche playerAIs = do
       s2 = score P_2 trump finalState
   --B.appendFile "games.log" $ encode finalState
 --  logs <- decode <$> B.readFile "games2.log" :: IO [(Game,GameStats)]
-  B.writeFile "games.log" $ encode $ (finalState,stats)
+  B.appendFile "games.log" $ encode $ (finalState,stats)
   print (s1,s2,s1+s2)
   pure (s1,s2)
 
