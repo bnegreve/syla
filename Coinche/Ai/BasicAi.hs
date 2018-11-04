@@ -45,6 +45,20 @@ iimcAi (GAO _ ngames nsim) game player legalcards = do
   trump <- askTrump
   liftIO $ iimcAi' trump ngames nsim game player legalcards
 
+
+-- Aggregates card scores accross different games (compute average score)
+aggregateScores :: [[(Card, Int, Double)]] -> [(Card, Double)]
+aggregateScores allscores =  [(card, avgscore) | (card, scores) <- M.assocs $ scoremaps,
+                                                let avgscore = (sum $ snd <$> scores) / fromIntegral (sum $ fst <$> scores) ]
+  where buildcardmaps :: [(Card,Int,Double)] -> M.Map Card [(Int,Double)]
+        buildcardmaps cardtriples =
+          M.fromList $ fmap (\(ci,ni,score) -> (ci, [(ni,score)] )) cardtriples
+        mergemaps :: [M.Map Card [(Int, Double)]] -> M.Map Card [(Int,Double)]
+        mergemaps cardmaps = foldr1 (M.unionWith (++)) cardmaps
+        scoremaps = mergemaps $ fmap buildcardmaps allscores
+
+
+
 -- AI: sample possible games from current game state and
 -- runs simulations inside the possibles games
 -- Warning: In this versions the games are sampled without analyzing
@@ -57,13 +71,13 @@ iimcAi' atout ngames nsim game player legalcards = do
     possiblegame <- samplePossibleGame pogame player remcards
     simul atout nsim possiblegame player legalcards
   -- sum the scores for each card accross the n simulated games
-  let cardscores =
-        (\x -> (fst $ head x, sum $ snd <$> x))
-        <$> transpose allscores :: [(Card,Double)] in 
-    pure $ bestmove cardscores
+  let cardscores = aggregateScores allscores
+--  print cardscores
+  pure $ cardscores
   where
     pogame = partiallyObservedGame player game -- partially observed game from player
-
+    thd (_,_,x) =x 
+    
 iimcAiSmart :: GenericAiOpts -> Ai
 iimcAiSmart (GAO _ ngames nsim) game player legalcards = do 
   trump <- askTrump
@@ -88,13 +102,13 @@ iimcAiSmart' atout ngames nsim game player legalcards = do
       possiblegame <- samplePossibleGame pogame player remcards
       simul atout nsim possiblegame player legalcards -- :: [[(Card, Double)]]
   -- sum the scores for each card accross the n simulated games
-  let cardscores =
-        (\x -> (fst $ head x, sum $ snd <$> x))
-        <$> transpose allscores :: [(Card,Double)] in do
+  let cardscores = undefined
+        -- (\x -> (fst $ head x, (fromIntegral $ sum $ thd <$> x) / (sum $ snd <$> x) ))
+        -- <$> transpose allscores :: [(Card,Double)] in do
 --    putStrLn ""
-    pure $ bestmove cardscores
+  pure $ cardscores
   where
-    pogame = partiallyObservedGame player game -- partially observed game from player
-
+    pogame = partiallyObservedGame player game -- partially observed game from playe
+    thd (_,_,x) = x
 
 
