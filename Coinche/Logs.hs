@@ -44,8 +44,12 @@ hands entry = [hand entry pi | pi <- [P_1,P_2,P_3,P_4]]
 
 formatEntry curplayer = do
         logs <- readLogs
-        writeFile "dataset.csv" $ unlines [show (fromEnum <$> formatGameState curplayer entry)| entry <- logs]
-        writeFile "output.csv" $ unlines [show (fromEnum <$> formatStats curplayer entry)| entry <- logs]
+        writeFile "dataset.csv" $ genCsv [show $ fromEnum <$> formatGameState curplayer entry| entry <- logs]
+        writeFile "output.csv" $ genCsv [show $ fromEnum <$> formatStats curplayer entry| entry <- logs]
+--        writeFile "testinputset.csv" $ unlines [show (fromEnum <$> formatGameState curplayer entry)| entry <- logs]
+--        writeFile "testoutputset.csv" $ unlines [show (fromEnum <$> formatStats curplayer entry)| entry <- logs]
+ where   genCsv :: [String] -> String
+         genCsv l = unlines $ init . tail <$> l
 
 
 formatStats curplayer entry = tensor
