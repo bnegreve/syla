@@ -6,29 +6,42 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+import argparse
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #device = torch.device("cpu")
 
+parser = argparse.ArgumentParser(description='Description')
+
+parser.add_argument('-l', action="store", type=float, default=0.005,
+                    dest='learning_rate',help='learning rate')
+parser.add_argument('-e', action="store", type=int, default=10,
+                    dest='epochs',help='number of epochs')
+
+args = parser.parse_args()
 
 train_x = np.array(pd.read_csv("data/train_x.csv").values)
 train_y = np.array(pd.read_csv("data/train_y.csv").values)
+
+
+
 #input_tensor = torch.Tensor (train_x.values, device=device)
 #output_tensor = torch.Tensor (train_y.values, device=device)
 
 
 
 
-n_epochs = 100
+n_epochs = args.epochs
 batch_size = 100
 
 inputsize = 128
 hiddensize = 500
 outputsize = 32
-learning_rate = 0.005
+learning_rate = args.learning_rate
 
 
-criterion = nn.MSELoss()
+criterion = nn.KLDivLoss()
 
 class Net (nn.Module):
     def __init__(self):
@@ -43,6 +56,7 @@ class Net (nn.Module):
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
         x = self.fc4(x)
+        x = F.log_softmax(x, dim=1)
         return x
 
 model = Net().to(device)
@@ -59,13 +73,15 @@ for e in range(n_epochs):
 
         x = torch.Tensor(train_x[batch_start:batch_end], device=device).cuda()
         y = torch.Tensor(train_y[batch_start:batch_end], device=device).cuda()
+        y = F.softmax(y, dim=1).to(device)
 
         optimizer.zero_grad()
 
         yhat = model(x)
         loss = criterion(yhat, y)
         lossval = loss.item()
-        print("epoch", e, "batch", i, "(size:", batch_end - batch_start, "loss:", lossval)
+        if i % 100 == 0: 
+            print("epoch", e, "batch", i, "(size:", batch_end - batch_start, "loss:", lossval)
         
         loss.backward()
         optimizer.step()
@@ -86,8 +102,9 @@ def test(xtest_file, ytest_file):
     xlen = len(test_x)
 
     for i in range (xlen) :        
-        x = torch.Tensor(test_x[i], device=device).cuda()
-        y = torch.Tensor(test_y[i], device=device).cuda()
+        x = torch.Tensor([test_x[i]], device=device).cuda()
+        y = torch.Tensor([test_y[i]], device=device).cuda()
+        y = F.softmax(y,dim=1)
         yhat = model(x)
         test_loss += criterion(yhat, y).item()
 
