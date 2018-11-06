@@ -101,12 +101,13 @@ def test(xtest_file, ytest_file):
 
     xlen = len(test_x)
 
-    for i in range (xlen) :        
-        x = torch.Tensor([test_x[i]], device=device)
-        y = torch.Tensor([test_y[i]])
-        y = F.softmax(y,dim=1).to(device)
-        yhat = model(x)
-        test_loss += criterion(yhat, y).item()
+    with torch.no_grad():
+        for i in range (xlen) :        
+            x = torch.tensor([test_x[i]], device=device)
+            y = torch.tensor([test_y[i]])
+            y = F.softmax(y,dim=1).to(device)
+            yhat = model(x)
+            test_loss += criterion(yhat, y).item()
 
     print("Test loss : ", test_loss / float(xlen))
         
