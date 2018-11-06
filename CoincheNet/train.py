@@ -21,8 +21,8 @@ parser.add_argument('-e', action="store", type=int, default=10,
 
 args = parser.parse_args()
 
-train_x = np.array(pd.read_csv("data/train_x.csv").values)
-train_y = np.array(pd.read_csv("data/train_y.csv").values)
+train_x = np.array(pd.read_csv("data/train_x.csv", dtype=np.float32).values)
+train_y = np.array(pd.read_csv("data/train_y.csv").values, dtype=np.float32)
 
 
 
@@ -71,8 +71,8 @@ for e in range(n_epochs):
         batch_start = i * batch_size
         batch_end = min(batch_start + batch_size, xlen)        
 
-        x = torch.Tensor(train_x[batch_start:batch_end], device=device).cuda()
-        y = torch.Tensor(train_y[batch_start:batch_end], device=device).cuda()
+        x = torch.tensor(train_x[batch_start:batch_end], device=device)
+        y = torch.tensor(train_y[batch_start:batch_end]) # TODO do not bring this back on the cpu
         y = F.softmax(y, dim=1).to(device)
 
         optimizer.zero_grad()
@@ -95,16 +95,16 @@ print ("############# TESTING ##################")
 
 
 def test(xtest_file, ytest_file):
-    test_x = np.array(pd.read_csv(xtest_file).values)
-    test_y = np.array(pd.read_csv(ytest_file).values)
+    test_x = np.array(pd.read_csv(xtest_file).values, dtype=np.float32)
+    test_y = np.array(pd.read_csv(ytest_file).values, dtype=np.float32)
     test_loss = 0.0
 
     xlen = len(test_x)
 
     for i in range (xlen) :        
-        x = torch.Tensor([test_x[i]], device=device).cuda()
-        y = torch.Tensor([test_y[i]], device=device).cuda()
-        y = F.softmax(y,dim=1)
+        x = torch.Tensor([test_x[i]], device=device)
+        y = torch.Tensor([test_y[i]])
+        y = F.softmax(y,dim=1).to(device)
         yhat = model(x)
         test_loss += criterion(yhat, y).item()
 
